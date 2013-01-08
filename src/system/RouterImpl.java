@@ -3,37 +3,47 @@ package system;
 import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.HashMap;
+import java.util.Map;
 
 import api.Router;
 import api.ServerToRouter;
 import api.StorageServer;
+import api.Task;
 
 public class RouterImpl implements Router, ServerToRouter{
 
+	private static Map<Integer, StorageServer> serverMap = new HashMap<>();
+	private static int numServers = 0;
+	
 	@Override
 	public void put(byte[] hash, byte[] data) {
-		// TODO Auto-generated method stub
+		Task task = new Task();
+		task.setData(data);
+		task.setHash(hash);
 		
+		routeRequest(task);
 	}
 
 	@Override
 	public void get(byte[] hash) {
-		// TODO Auto-generated method stub
+		Task task = new Task();
+		task.setHash(hash);
 		
+		routeRequest(task);
 	}
 	
 
 	@Override
-	public void register(StorageServer server) {
-		// TODO Auto-generated method stub
-		
+	public synchronized void register(StorageServer server) {
+		serverMap.put(numServers++, server);
 	}
 	
 	/**
 	 * Based on the hash value, route the request to the appropriate StorageServer.
 	 */
-	private void routeRequest(){
-		
+	private void routeRequest(Task task){
+		serverMap.get(1).assignTask(task);
 	}
 	
 	public static void main(String[] args) throws Exception {
