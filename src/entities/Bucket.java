@@ -1,31 +1,69 @@
+/*
+ * @author Gautham Narayanasamy
+ */
 package entities;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Bucket {
+/**
+ * The Class Bucket.
+ */
+public class Bucket implements Serializable{
+	
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = -3271477285326935085L;
+
+	/** The id. */
 	private int id;
 	
-	private Map<String, Long> index;
+	/** The index. */
+	private Map<String, DataEntry> index;
 	
+	/**
+	 * Instantiates a new bucket.
+	 *
+	 * @param id the id
+	 */
 	public Bucket(int id){
 		this.id = id;
 		this.index  = new HashMap<>();
 	}
 
+	/**
+	 * Gets the id.
+	 *
+	 * @return the id
+	 */
 	public int getId() {
 		return id;
 	}
 
+	/**
+	 * Sets the id.
+	 *
+	 * @param id the new id
+	 */
 	public void setId(int id) {
 		this.id = id;
 	}
 
-	public Map<String, Long> getIndex() {
+	/**
+	 * Gets the index.
+	 *
+	 * @return the index
+	 */
+	public Map<String, DataEntry> getIndex() {
 		return index;
 	}
 
-	public void setIndex(Map<String, Long> index) {
+	/**
+	 * Sets the index.
+	 *
+	 * @param index the index
+	 */
+	public void setIndex(Map<String, DataEntry> index) {
 		this.index = index;
 	}
 	
