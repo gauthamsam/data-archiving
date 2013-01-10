@@ -56,6 +56,7 @@ public class Accumulator {
 		this.getQueue = new PriorityBlockingQueue<Integer>(10, new PutComparator());
 		this.putQueue = new PriorityBlockingQueue<Integer>(10, new PutComparator());
 		
+		// Start the scheduler threads.
 		new GetScheduler().start();
 		new PutScheduler().start();
 	}
@@ -139,6 +140,7 @@ public class Accumulator {
 	 * @param task the task
 	 */
 	public void addToPutQueue(int bucket_hash, Task task) {
+		// Check if the putMap already has a task queue for this bucket.
 		Queue<Task> tasks = putMap.get(bucket_hash);
 		if (tasks == null) { 
 			tasks = new LinkedList<>();
@@ -146,6 +148,7 @@ public class Accumulator {
 		tasks.add(task);
 		putMap.put(bucket_hash, tasks);
 		
+		// Remove the bucket from the priority queue before adding it.
 		// O(n)
 		putQueue.remove(bucket_hash);
 		// O(log(n))
@@ -160,6 +163,7 @@ public class Accumulator {
 	 * @param task the task
 	 */
 	public void addToGetQueue(int bucket_hash, Task task) {
+		// Check if the getMap already has a task queue for this bucket.		
 		Queue<Task> tasks = getMap.get(bucket_hash);
 		
 		if (tasks == null) { 
@@ -168,11 +172,11 @@ public class Accumulator {
 		tasks.add(task);
 		getMap.put(bucket_hash, tasks);
 
+		// Remove the bucket from the priority queue before adding it.
 		// O(n)
 		getQueue.remove(bucket_hash);
 		// O(log(n))
-		getQueue.add(bucket_hash);
-		
+		getQueue.add(bucket_hash);		
 	}
 	
 	/**

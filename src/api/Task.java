@@ -14,6 +14,9 @@ public class Task {
 	/** The data. */
 	private byte[] data;
 
+	private int type;
+	
+	
 	/**
 	 * Gets the hash.
 	 *
@@ -48,6 +51,14 @@ public class Task {
 	 */
 	public void setData(byte[] data) {
 		this.data = data;
+	}
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
 	}
 
 }

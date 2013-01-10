@@ -24,10 +24,10 @@ import api.Task;
 public class RouterImpl implements Router, ServerToRouter{
 
 	/** The server map. */
-	private static Map<Integer, StorageServer> serverMap = new HashMap<>();
+	private Map<Integer, StorageServer> serverMap = new HashMap<>();
 	
 	/** The number of Storage Servers. */
-	private static int numServers = 0;
+	private int numServers = 0;
 	
 	/* (non-Javadoc)
 	 * @see api.Router#put(byte[], byte[])
@@ -37,6 +37,7 @@ public class RouterImpl implements Router, ServerToRouter{
 		Task task = new Task();
 		task.setData(data);
 		task.setHash(hash);
+		task.setType(Constants.TASK_TYPE_PUT);
 		
 		routeRequest(task);
 	}
@@ -48,6 +49,7 @@ public class RouterImpl implements Router, ServerToRouter{
 	public void get(byte[] hash) {
 		Task task = new Task();
 		task.setHash(hash);
+		task.setType(Constants.TASK_TYPE_GET);
 		
 		routeRequest(task);
 	}	
@@ -75,7 +77,8 @@ public class RouterImpl implements Router, ServerToRouter{
 			throw new ArchiveException("The number of bytes exceeds 4!");
 		}
 		
-		for(int i = 0; i < 4; i++) {
+		// Getting the integer corresponding to the first 'numBytes' of the hash.
+		for(int i = 0; i < numBytes; i++) {
 			value = (value << 8) | hash[i];
 		}
 		

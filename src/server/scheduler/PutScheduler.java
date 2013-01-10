@@ -4,6 +4,7 @@
 package server.scheduler;
 
 import server.Accumulator;
+import utils.Constants;
 
 /**
  * The Class PutScheduler.
@@ -14,8 +15,10 @@ public class PutScheduler extends Scheduler{
 	 * @see java.lang.Thread#run()
 	 */
 	public void run() {		
+		Accumulator accumulator = Accumulator.getInstance();
+		
 		while(true) {
-			processQueue(Accumulator.getInstance().getPutQueue(), Accumulator.getInstance().getPutMap());
+			processQueue(accumulator.getPutQueue(), accumulator.getPutMap(), Constants.TASK_TYPE_PUT);
 		}
 	}
 }

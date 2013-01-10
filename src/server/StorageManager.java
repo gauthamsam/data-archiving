@@ -49,12 +49,21 @@ public class StorageManager {
 		
 		Bucket bucket = readBucket(bucketId);
 		Map<String, DataEntry> index = bucket.getIndex();
-		/* Get the offset of data associated with each task in the queue.
+		/* Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
 		 */
 		List<DataEntry> offsets = new ArrayList<>();
+		DataEntry offset = null;
+		
 		for(Task task : tasks){
-			offsets.add(index.get(task.getHash()));
+			offset = index.get(task.getHash());
+			
+			// If the index does not contain the hash
+			if (offset == null) { 
+				throw new ArchiveException("There is no data associated with the hash " + task.getHash());
+			}
+			
+			offsets.add(offset);
 		}
 		Collections.sort(offsets);
 		readDataFromDisk(bucketId, offsets);
@@ -126,22 +135,23 @@ public class StorageManager {
 	 * @param tasks the tasks
 	 */
 	private static void writeBucket(Bucket bucket) {
-		if(bucket == null){
+		if(bucket == null) {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
 		
 		String bucketPath = Constants.FILE_PATH + File.separator + bucket.getId();
 		ObjectOutputStream outputStream = null;
-		try{
+		
+		try {
 			outputStream = new ObjectOutputStream(new FileOutputStream(bucketPath));			
 			outputStream.writeObject(bucket);
 			outputStream.flush();
 		}
-		catch(IOException e){
+		catch(IOException e) {
 			logger.error(e);
 			throw new ArchiveException(e);
 		}
-		finally{
+		finally {
 			try {
 				outputStream.close();
 			} catch (IOException e) {
@@ -157,7 +167,7 @@ public class StorageManager {
 	 * @param bucketId the bucket id
 	 * @param dataEntries the data entries
 	 */
-	private static void readDataFromDisk(int bucketId, List<DataEntry> dataEntries){
+	private static void readDataFromDisk(int bucketId, List<DataEntry> dataEntries) {
 		List<byte[]> dataList = new ArrayList<>();
 		
 		String filePath = Constants.FILE_PATH + File.separator + bucketId;
@@ -168,6 +178,7 @@ public class StorageManager {
 			
 			for(DataEntry dataEntry : dataEntries) {
 				byte[] data = new byte[dataEntry.getDataLength()];
+				// Seek to the data's offset and read the data.
 				raf.seek(dataEntry.getOffset());
 				raf.read(data, 0, data.length);
 				dataList.add(data);
