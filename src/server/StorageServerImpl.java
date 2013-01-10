@@ -12,9 +12,9 @@ public class StorageServerImpl implements StorageServer{
 	@Override
 	public void assignTask(int bucket_hash, Task task) {
 		// if put task
-		Accumulator.addToPutQueue(bucket_hash, task);
+		Accumulator.getInstance().addToPutQueue(bucket_hash, task);
 		// if get task
-		Accumulator.addToGetQueue(bucket_hash, task);
+		Accumulator.getInstance().addToGetQueue(bucket_hash, task);
 	}
 	
 	public static void main(String[] args) throws Exception {
