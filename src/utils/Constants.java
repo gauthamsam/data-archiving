@@ -17,8 +17,11 @@ public class Constants {
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
 	public static final int BUFFER_SIZE = 5;
 	
+	/** The Constant TASK_TYPE_PUT. */
 	public static final int TASK_TYPE_PUT = 1;
 	
+	/** The Constant TASK_TYPE_GET. */
 	public static final int TASK_TYPE_GET = 2;
 	
+	public static final int THREADS_PER_PROCESSOR = 4;
 }

@@ -3,11 +3,16 @@
  */
 package api;
 
+import java.io.Serializable;
+
 /**
  * The Class Task.
  */
-public class Task {
+public class Task implements Serializable{
 	
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = 1959265322617740977L;
+
 	/** The hash. */
 	private byte[] hash;
 	

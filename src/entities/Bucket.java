@@ -65,7 +65,6 @@ public class Bucket implements Serializable{
 	 */
 	public void setIndex(Map<String, DataEntry> index) {
 		this.index = index;
-	}
-	
+	}	
 
 }

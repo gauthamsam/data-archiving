@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import server.scheduler.GetScheduler;
-import server.scheduler.PutScheduler;
+import utils.Constants;
+
 import api.Task;
 
 /**
@@ -20,17 +20,14 @@ import api.Task;
  */
 public class Accumulator {
 
-	/** The put map. */
+	/** The map that would contain all the 'get' tasks associated with a bucket. */
 	private Map<Integer, Queue<Task>> putMap;
 	
-	/** The get map. */
+	/** The map that would contain all the 'put' tasks associated with a bucket. */
 	private Map<Integer, Queue<Task>> getMap;	
 	
-	/** The get queue. */
-	private Queue<Integer> getQueue;
-	
-	/** The put queue. */
-	private Queue<Integer> putQueue;
+	/** The priority queue. */
+	private Queue<Integer> queue;	
 	
 	/** The accumulator. */
 	private static Accumulator accumulator;
@@ -50,15 +47,17 @@ public class Accumulator {
 	/**
 	 * Instantiates a new accumulator.
 	 */
-	private Accumulator(){
+	private Accumulator() {
 		this.putMap = Collections.synchronizedMap(new LinkedHashMap<Integer, Queue<Task>>());
 		this.getMap = Collections.synchronizedMap(new LinkedHashMap<Integer, Queue<Task>>());
-		this.getQueue = new PriorityBlockingQueue<Integer>(10, new PutComparator());
-		this.putQueue = new PriorityBlockingQueue<Integer>(10, new PutComparator());
-		
+		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());
+	
 		// Start the scheduler threads.
-		new GetScheduler().start();
-		new PutScheduler().start();
+		int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+		for (int i = 0; i < numThreads; i++) {
+			new Scheduler().start();
+		}
+		
 	}
 	
 	/**
@@ -98,39 +97,21 @@ public class Accumulator {
 	}
 
 	/**
-	 * Gets the gets the queue.
+	 * Gets the queue.
 	 *
-	 * @return the gets the queue
+	 * @return the queue
 	 */
-	public Queue<Integer> getGetQueue() {
-		return getQueue;
+	public Queue<Integer> getQueue() {
+		return queue;
 	}
 
 	/**
-	 * Sets the gets the queue.
+	 * Sets the queue.
 	 *
-	 * @param getQueue the new gets the queue
+	 * @param queue the new queue
 	 */
-	public void setGetQueue(Queue<Integer> getQueue) {
-		this.getQueue = getQueue;
-	}
-
-	/**
-	 * Gets the put queue.
-	 *
-	 * @return the put queue
-	 */
-	public Queue<Integer> getPutQueue() {
-		return putQueue;
-	}
-
-	/**
-	 * Sets the put queue.
-	 *
-	 * @param putQueue the new put queue
-	 */
-	public void setPutQueue(Queue<Integer> putQueue) {
-		this.putQueue = putQueue;
+	public void setQueue(Queue<Integer> queue) {
+		this.queue = queue;
 	}
 
 	/**
@@ -150,9 +131,9 @@ public class Accumulator {
 		
 		// Remove the bucket from the priority queue before adding it.
 		// O(n)
-		putQueue.remove(bucket_hash);
+		queue.remove(bucket_hash);
 		// O(log(n))
-		putQueue.add(bucket_hash);
+		queue.add(bucket_hash);
 		
 	}
 	
@@ -164,46 +145,33 @@ public class Accumulator {
 	 */
 	public void addToGetQueue(int bucket_hash, Task task) {
 		// Check if the getMap already has a task queue for this bucket.		
-		Queue<Task> tasks = getMap.get(bucket_hash);
-		
+		Queue<Task> tasks = getMap.get(bucket_hash);		
 		if (tasks == null) { 
 			tasks = new LinkedList<>();
 		}
+		
 		tasks.add(task);
 		getMap.put(bucket_hash, tasks);
 
 		// Remove the bucket from the priority queue before adding it.
 		// O(n)
-		getQueue.remove(bucket_hash);
+		queue.remove(bucket_hash);
 		// O(log(n))
-		getQueue.add(bucket_hash);		
+		queue.add(bucket_hash);		
 	}
 	
+	
 	/**
-	 * The Class PutComparator.
+	 * The Comparator that defines the ordering (priority) of the elements in the priority queue.
 	 */
-	class PutComparator implements Comparator<Integer>{		
+	class ScheduleComparator implements Comparator<Integer> {		
 		
 		/* (non-Javadoc)
 		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
 		 */
 		@Override
 		public int compare(Integer i1, Integer i2) {			
-			return putMap.get(i1).size() - putMap.get(i2).size();			
-		}
-	}
-	
-	/**
-	 * The Class GetComparator.
-	 */
-	class GetComparator implements Comparator<Integer>{		
-		
-		/* (non-Javadoc)
-		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
-		 */
-		@Override
-		public int compare(Integer i1, Integer i2) {			
-			return getMap.get(i1).size() - getMap.get(i2).size();			
+			return (getMap.get(i1).size() + putMap.get(i1).size()) - (getMap.get(i2).size() + putMap.get(i2).size());			
 		}
 	}
 }

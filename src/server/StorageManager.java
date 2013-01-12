@@ -34,20 +34,54 @@ public class StorageManager {
 	
 	/** The Constant logger. */
 	private static final Logger logger = Logger.getLogger(StorageManager.class);
+	
+	/** The storage manager. */
+	private static StorageManager storageManager;
+	
+	/**
+	 * Gets the single instance of StorageManager.
+	 *
+	 * @return single instance of StorageManager
+	 */
+	public static synchronized StorageManager getInstance() {
+		if (storageManager == null) {
+			storageManager = new StorageManager();
+		}
+		return storageManager;
+	}
 
 
 	/**
-	 * Read data.
+	 * Process data.
 	 *
 	 * @param bucketId the bucket id
-	 * @param tasks the tasks
+	 * @param getQueue the get queue
+	 * @param putQueue the put queue
 	 */
-	public static synchronized void readData(int bucketId, Queue<Task> tasks) {
-		if(bucketId < 0 || tasks == null || tasks.size() == 0){
+	public void processData(int bucketId, Queue<Task> getQueue, Queue<Task> putQueue) {
+		if(bucketId < 0 || getQueue == null || getQueue.size() == 0 || putQueue == null || putQueue.size() == 0) {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
 		
+		// Get the bucket from disk.
 		Bucket bucket = readBucket(bucketId);
+		
+		synchronized(bucket) {
+			// Do the read operations.
+			readData(bucket, getQueue);
+			
+			// Do the write operations.
+			writeData(bucket, putQueue);
+		}
+	}
+	
+	/**
+	 * Read data.
+	 *
+	 * @param bucket the bucket
+	 * @param tasks the tasks
+	 */
+	private void readData(Bucket bucket, Queue<Task> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
 		/* Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
@@ -55,7 +89,7 @@ public class StorageManager {
 		List<DataEntry> offsets = new ArrayList<>();
 		DataEntry offset = null;
 		
-		for(Task task : tasks){
+		for(Task task : tasks) {
 			offset = index.get(task.getHash());
 			
 			// If the index does not contain the hash
@@ -65,38 +99,33 @@ public class StorageManager {
 			
 			offsets.add(offset);
 		}
+		
 		Collections.sort(offsets);
-		readDataFromDisk(bucketId, offsets);
+		readDataFromDisk(bucket.getId(), offsets);
 	}
 	
 	/**
 	 * Write data.
 	 *
-	 * @param bucketId the bucket id
+	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	public static synchronized void writeData(int bucketId, Queue<Task> tasks){
-		if(bucketId < 0 || tasks == null || tasks.size() == 0){
-			throw new IllegalArgumentException("Invalid bucketId or task queue.");
-		}
-		
-		Bucket bucket = readBucket(bucketId);
+	private void writeData(Bucket bucket, Queue<Task> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
 		
 		// Filter the data that is to be written to disk. i.e. Write only the blocks that are not already there.
 		Map<String, byte[]> dataToWrite = new HashMap<>();
-		for(Task task : tasks){
-			if(! index.containsKey(task.getHash())){
+		for(Task task : tasks) {
+			if(! index.containsKey(task.getHash())) {
 				dataToWrite.put(task.getHash().toString(), task.getData());			
 			}
 		}
 		
 		// The bucket's index will be modified in place.
-		writeDataToDisk(bucketId, dataToWrite, index);
+		writeDataToDisk(bucket.getId(), dataToWrite, index);
 		
 		// Write (serialize) the modified bucket back to disk.
 		writeBucket(bucket);
-		
 	}
 	
 	/**
@@ -105,7 +134,7 @@ public class StorageManager {
 	 * @param bucketId the bucket id
 	 * @return bucket
 	 */
-	private static Bucket readBucket(int bucketId) {		
+	private Bucket readBucket(int bucketId) {		
 		String bucketPath = Constants.FILE_PATH + File.separator + bucketId;
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
@@ -131,10 +160,9 @@ public class StorageManager {
 	/**
 	 * Write bucket.
 	 *
-	 * @param bucketId the bucket id
-	 * @param tasks the tasks
+	 * @param bucket the bucket
 	 */
-	private static void writeBucket(Bucket bucket) {
+	private void writeBucket(Bucket bucket) {
 		if(bucket == null) {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
@@ -167,7 +195,7 @@ public class StorageManager {
 	 * @param bucketId the bucket id
 	 * @param dataEntries the data entries
 	 */
-	private static void readDataFromDisk(int bucketId, List<DataEntry> dataEntries) {
+	private void readDataFromDisk(int bucketId, List<DataEntry> dataEntries) {
 		List<byte[]> dataList = new ArrayList<>();
 		
 		String filePath = Constants.FILE_PATH + File.separator + bucketId;
@@ -205,7 +233,7 @@ public class StorageManager {
 	 * @param dataToWrite the data
 	 * @param index the bucket index
 	 */
-	private static void writeDataToDisk(int bucketId, Map<String, byte[]> dataToWrite, Map<String, DataEntry> index) {
+	private void writeDataToDisk(int bucketId, Map<String, byte[]> dataToWrite, Map<String, DataEntry> index) {
 		OutputStream os = null;
 		
 		String filePath = Constants.FILE_PATH + File.separator + bucketId;
@@ -247,6 +275,5 @@ public class StorageManager {
 			
 		}
 	}
-
 
 }
