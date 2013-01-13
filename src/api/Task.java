@@ -14,7 +14,7 @@ public class Task implements Serializable{
 	private static final long serialVersionUID = 1959265322617740977L;
 
 	/** The hash. */
-	private byte[] hash;
+	private String hash;
 	
 	/** The data. */
 	private byte[] data;
@@ -27,7 +27,7 @@ public class Task implements Serializable{
 	 *
 	 * @return the hash
 	 */
-	public byte[] getHash() {
+	public String getHash() {
 		return hash;
 	}
 
@@ -36,7 +36,7 @@ public class Task implements Serializable{
 	 *
 	 * @param hash the new hash
 	 */
-	public void setHash(byte[] hash) {
+	public void setHash(String hash) {
 		this.hash = hash;
 	}
 

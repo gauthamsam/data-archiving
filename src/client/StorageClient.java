@@ -7,12 +7,14 @@ import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import api.Router;
 
 public class StorageClient {
 	
-	public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException {
+	public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException, InterruptedException {
 		// Construct & set a security manager to allow downloading of classes from a remote codebase
 		System.setSecurityManager(new RMISecurityManager());
 		String serverDomainName = args[0];
@@ -23,8 +25,10 @@ public class StorageClient {
 		String data = "sample text";		
 		MessageDigest md = null;
 		byte[] hash = null;
-		for (int i = 0; i < 2; i++){
-			data = "sample text";
+		List<byte[]> hashList = new ArrayList<>();
+		
+		for (int i = 0; i < 5; i++) {
+			data = "sample text " + i;
 		    try {
 		        md = MessageDigest.getInstance("SHA-1");
 		        hash = md.digest(data.getBytes());
@@ -33,9 +37,13 @@ public class StorageClient {
 		        e.printStackTrace();
 		    }
 			router.put(hash, data.getBytes());
+			hashList.add(hash);
 		}
-	    
-				
+		
+		Thread.sleep(3000);
+		for(byte[] hash1 : hashList) {
+			router.get(hash1);
+		}
 	}
 
 }

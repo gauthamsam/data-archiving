@@ -11,6 +11,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 import exceptions.ArchiveException;
 
 import utils.Constants;
@@ -47,7 +49,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	public void put(byte[] hash, byte[] data) throws RemoteException {
 		Task task = new Task();
 		task.setData(data);
-		task.setHash(hash);
+		task.setHash(new String(hash));
 		task.setType(Constants.TASK_TYPE_PUT);
 		
 		routeRequest(task);
@@ -59,7 +61,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	@Override
 	public void get(byte[] hash) throws RemoteException {
 		Task task = new Task();
-		task.setHash(hash);
+		task.setHash(new String(hash));
 		task.setType(Constants.TASK_TYPE_GET);
 		
 		routeRequest(task);
@@ -81,7 +83,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 * @param task the task
 	 */
 	private void routeRequest(Task task) throws RemoteException {
-		byte[] hash = task.getHash();
+		byte[] hash = task.getHash().getBytes();
 		
 		int value = 0;
 		int numBytes = Constants.BUCKET_HASH_NUM_BYTES;

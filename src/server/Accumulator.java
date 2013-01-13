@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -25,7 +26,7 @@ public class Accumulator {
 	private Map<Integer, Queue<Task>> getMap;	
 	
 	/** The priority queue. */
-	private Queue<Integer> queue;	
+	private BlockingQueue<Integer> queue;	
 	
 	/** The accumulator. */
 	private static Accumulator accumulator;
@@ -99,7 +100,7 @@ public class Accumulator {
 	 *
 	 * @return the queue
 	 */
-	public Queue<Integer> getQueue() {
+	public BlockingQueue<Integer> getQueue() {
 		return queue;
 	}
 
@@ -108,7 +109,7 @@ public class Accumulator {
 	 *
 	 * @param queue the new queue
 	 */
-	public void setQueue(Queue<Integer> queue) {
+	public void setQueue(BlockingQueue<Integer> queue) {
 		this.queue = queue;
 	}
 
@@ -131,8 +132,7 @@ public class Accumulator {
 		// O(n)
 		queue.remove(bucket_hash);
 		// O(log(n))
-		queue.add(bucket_hash);
-		
+		queue.add(bucket_hash);		
 	}
 	
 	/**
