@@ -4,6 +4,7 @@
 package api;
 
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 
 /**
  * The Interface StorageServer.
@@ -16,5 +17,5 @@ public interface StorageServer extends Remote{
 	 * @param bucket_hash the bucket_hash
 	 * @param task the task
 	 */
-	public void assignTask(int bucket_hash, Task task);
+	public void assignTask(int bucket_hash, Task task) throws RemoteException;
 }

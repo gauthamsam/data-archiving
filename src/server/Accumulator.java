@@ -3,16 +3,14 @@
  */
 package server;
 
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import utils.Constants;
-
 import api.Task;
 
 /**
@@ -40,6 +38,12 @@ public class Accumulator {
 	public static synchronized Accumulator getInstance() {
 		if (accumulator == null) {
 			accumulator = new Accumulator();
+			
+			// Start the scheduler threads.
+			int numThreads = 1; //Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			for (int i = 1; i <= numThreads; i++) {
+				new Scheduler(i, accumulator).start();
+			}
 		}
 		return accumulator;
 	}
@@ -48,16 +52,10 @@ public class Accumulator {
 	 * Instantiates a new accumulator.
 	 */
 	private Accumulator() {
-		this.putMap = Collections.synchronizedMap(new LinkedHashMap<Integer, Queue<Task>>());
-		this.getMap = Collections.synchronizedMap(new LinkedHashMap<Integer, Queue<Task>>());
-		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());
-	
-		// Start the scheduler threads.
-		int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
-		for (int i = 0; i < numThreads; i++) {
-			new Scheduler().start();
-		}
-		
+		System.out.println("Accumulator's constructor");
+		this.putMap = new ConcurrentHashMap<Integer, Queue<Task>>();
+		this.getMap = new ConcurrentHashMap<Integer, Queue<Task>>();
+		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());	
 	}
 	
 	/**
@@ -128,7 +126,7 @@ public class Accumulator {
 		}
 		tasks.add(task);
 		putMap.put(bucket_hash, tasks);
-		
+		System.out.println("Bucket " + bucket_hash + " added to Putmap.");
 		// Remove the bucket from the priority queue before adding it.
 		// O(n)
 		queue.remove(bucket_hash);
@@ -157,7 +155,7 @@ public class Accumulator {
 		// O(n)
 		queue.remove(bucket_hash);
 		// O(log(n))
-		queue.add(bucket_hash);		
+		queue.add(bucket_hash);
 	}
 	
 	
@@ -170,8 +168,18 @@ public class Accumulator {
 		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
 		 */
 		@Override
-		public int compare(Integer i1, Integer i2) {			
-			return (getMap.get(i1).size() + putMap.get(i1).size()) - (getMap.get(i2).size() + putMap.get(i2).size());			
+		public int compare(Integer i1, Integer i2) {
+			System.out.println("Integer 1 " + i1);
+			System.out.println("Integer 2 " + i2);
+			
+			Queue<Task> putQueue1 = putMap.get(i1);
+			Queue<Task> getQueue1 = getMap.get(i1);
+			
+			Queue<Task> putQueue2 = putMap.get(i2);
+			Queue<Task> getQueue2 = getMap.get(i2);
+			
+			
+			return ((putQueue1 != null ? putQueue1.size() : 0) + (getQueue1 != null ? getQueue1.size() : 0)) - ((putQueue2 != null ? putQueue2.size() : 0) + (getQueue2 != null ? getQueue2.size() : 0));			
 		}
 	}
 }

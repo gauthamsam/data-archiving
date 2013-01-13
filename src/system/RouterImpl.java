@@ -4,8 +4,10 @@
 package system;
 
 import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +23,11 @@ import api.Task;
 /**
  * The Class RouterImpl contains the implementations of the logic to route the archiving requests to the appropriate Storage servers based on the hash.
  */
-public class RouterImpl implements Router, ServerToRouter{
+public class RouterImpl extends UnicastRemoteObject implements Router, ServerToRouter{
+
+
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = -3548712810447954655L;
 
 	/** The server map. */
 	private Map<Integer, StorageServer> serverMap = new HashMap<>();
@@ -29,11 +35,16 @@ public class RouterImpl implements Router, ServerToRouter{
 	/** The number of Storage Servers. */
 	private int numServers = 0;
 	
+	
+	protected RouterImpl() throws RemoteException {
+		super();		
+	}
+	
 	/* (non-Javadoc)
 	 * @see api.Router#put(byte[], byte[])
 	 */
 	@Override
-	public void put(byte[] hash, byte[] data) {
+	public void put(byte[] hash, byte[] data) throws RemoteException {
 		Task task = new Task();
 		task.setData(data);
 		task.setHash(hash);
@@ -46,7 +57,7 @@ public class RouterImpl implements Router, ServerToRouter{
 	 * @see api.Router#get(byte[])
 	 */
 	@Override
-	public void get(byte[] hash) {
+	public void get(byte[] hash) throws RemoteException {
 		Task task = new Task();
 		task.setHash(hash);
 		task.setType(Constants.TASK_TYPE_GET);
@@ -58,8 +69,10 @@ public class RouterImpl implements Router, ServerToRouter{
 	 * @see api.ServerToRouter#register(api.StorageServer)
 	 */
 	@Override
-	public synchronized void register(StorageServer server) {
+	public synchronized void register(StorageServer server) throws RemoteException {
+		System.out.println("Server " + numServers + " registered!");
 		serverMap.put(numServers++, server);
+		
 	}
 	
 	/**
@@ -67,11 +80,11 @@ public class RouterImpl implements Router, ServerToRouter{
 	 *
 	 * @param task the task
 	 */
-	private void routeRequest(Task task) {
+	private void routeRequest(Task task) throws RemoteException {
 		byte[] hash = task.getHash();
 		
 		int value = 0;
-		int numBytes = Constants.HASH_BIT_NUMBER;
+		int numBytes = Constants.BUCKET_HASH_NUM_BYTES;
 		
 		if (numBytes > 4) {
 			throw new ArchiveException("The number of bytes exceeds 4!");
@@ -81,7 +94,8 @@ public class RouterImpl implements Router, ServerToRouter{
 		for(int i = 0; i < numBytes; i++) {
 			value = (value << 8) | hash[i];
 		}
-		
+		System.out.println("Bucket hash value: " + value);
+		System.out.println("Routing to Server " + value % numServers);
 		serverMap.get(value % numServers).assignTask(value, task);
 	}
 	
@@ -103,7 +117,6 @@ public class RouterImpl implements Router, ServerToRouter{
 		registry.rebind(Router.SERVICE_NAME, router);
 		
 		System.out.println("Router is ready.");
-
 	}
 
 }

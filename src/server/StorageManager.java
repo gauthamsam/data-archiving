@@ -26,21 +26,20 @@ import entities.Bucket;
 import entities.DataEntry;
 import exceptions.ArchiveException;
 
-
 /**
- * The StorageManager deals with all the disk operations. 
+ * The StorageManager deals with all the disk operations.
  */
 public class StorageManager {
-	
+
 	/** The Constant logger. */
 	private static final Logger logger = Logger.getLogger(StorageManager.class);
-	
+
 	/** The storage manager. */
 	private static StorageManager storageManager;
-	
+
 	/**
 	 * Gets the single instance of StorageManager.
-	 *
+	 * 
 	 * @return single instance of StorageManager
 	 */
 	public static synchronized StorageManager getInstance() {
@@ -50,105 +49,132 @@ public class StorageManager {
 		return storageManager;
 	}
 
-
 	/**
 	 * Process data.
-	 *
+	 * 
 	 * @param bucketId the bucket id
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public void processData(int bucketId, Queue<Task> getQueue, Queue<Task> putQueue) {
-		if(bucketId < 0 || getQueue == null || getQueue.size() == 0 || putQueue == null || putQueue.size() == 0) {
-			throw new IllegalArgumentException("Invalid bucketId or task queue.");
+	public void processData(int bucketId, Queue<Task> getQueue,	Queue<Task> putQueue) {
+		if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
+			throw new IllegalArgumentException("Invalid task queues.");
 		}
 		
+		System.out.println("Processing Bucket: " + bucketId);
+
 		// Get the bucket from disk.
 		Bucket bucket = readBucket(bucketId);
-		
-		synchronized(bucket) {
-			// Do the read operations.
-			readData(bucket, getQueue);
-			
-			// Do the write operations.
-			writeData(bucket, putQueue);
+
+		synchronized (bucket) {
+			if(getQueue != null) {
+				// Do the read operations.
+				readData(bucket, getQueue);
+			}
+
+			if(putQueue != null) {
+				// Do the write operations.
+				writeData(bucket, putQueue);
+			}
 		}
 	}
-	
+
 	/**
 	 * Read data.
-	 *
+	 * 
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
 	private void readData(Bucket bucket, Queue<Task> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
-		/* Get the offset of the data associated with each task in the queue.
+		/*
+		 * Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
 		 */
 		List<DataEntry> offsets = new ArrayList<>();
 		DataEntry offset = null;
-		
-		for(Task task : tasks) {
+
+		for (Task task : tasks) {
 			offset = index.get(task.getHash());
-			
+
 			// If the index does not contain the hash
-			if (offset == null) { 
+			if (offset == null) {
 				throw new ArchiveException("There is no data associated with the hash " + task.getHash());
 			}
-			
+
 			offsets.add(offset);
 		}
-		
+
 		Collections.sort(offsets);
 		readDataFromDisk(bucket.getId(), offsets);
 	}
-	
+
 	/**
 	 * Write data.
-	 *
+	 * 
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
 	private void writeData(Bucket bucket, Queue<Task> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
-		
-		// Filter the data that is to be written to disk. i.e. Write only the blocks that are not already there.
+
+		// Filter the data that is to be written to disk. i.e. Write only the
+		// blocks that are not already there.
 		Map<String, byte[]> dataToWrite = new HashMap<>();
-		for(Task task : tasks) {
-			if(! index.containsKey(task.getHash())) {
-				dataToWrite.put(task.getHash().toString(), task.getData());			
+		for (Task task : tasks) {
+			if (! index.containsKey(task.getHash())) {
+				dataToWrite.put(task.getHash().toString(), task.getData());
 			}
 		}
-		
+
 		// The bucket's index will be modified in place.
 		writeDataToDisk(bucket.getId(), dataToWrite, index);
-		
+
 		// Write (serialize) the modified bucket back to disk.
 		writeBucket(bucket);
 	}
-	
+
 	/**
 	 * Read bucket.
-	 *
-	 * @param bucketId the bucket id
+	 * 
+	 * @param bucketId
+	 *            the bucket id
 	 * @return bucket
 	 */
-	private Bucket readBucket(int bucketId) {		
-		String bucketPath = Constants.FILE_PATH + File.separator + bucketId;
+	private Bucket readBucket(int bucketId) {
+		String bucketPath = Constants.BUCKET_DIR + File.separator + bucketId + Constants.BUCKET_FILE_EXTENSION;
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
 		try {
-			inputStream = new ObjectInputStream(new FileInputStream(bucketPath));		
-			bucket = (Bucket) inputStream.readObject();			
+			System.out.println("bucket path " + bucketPath);
+			File file = new File(bucketPath.substring(0, bucketPath.lastIndexOf("/")));
 			
-		} catch (ClassNotFoundException | IOException e) {
+			// Create the directory if it is not already there.			
+			if (! file.exists()) {
+				System.out.println("Creating directory " + file.getAbsolutePath());
+				file.mkdirs();
+				return new Bucket(bucketId);
+			}
+			
+			// If the bucket file is not present, simply return a new bucket.
+			if (! new File(bucketPath).exists()) {
+				return new Bucket(bucketId);
+			}
+			
+			inputStream = new ObjectInputStream(new FileInputStream(bucketPath));
+			bucket = (Bucket) inputStream.readObject();
+		} catch (IOException e) {
+			throw new ArchiveException(e);
+		} catch (ClassNotFoundException e) {
 			logger.error("Bucket not found. Exception: " + e);
 			throw new ArchiveException(e);
 		}
-		finally{
+
+		finally {
 			try {
-				inputStream.close();
+				if( inputStream != null) {
+					inputStream.close();
+				}
 			} catch (IOException e) {
 				logger.error(e);
 				throw new ArchiveException(e);
@@ -159,29 +185,30 @@ public class StorageManager {
 
 	/**
 	 * Write bucket.
-	 *
-	 * @param bucket the bucket
+	 * 
+	 * @param bucket
+	 *            the bucket
 	 */
 	private void writeBucket(Bucket bucket) {
-		if(bucket == null) {
+		if (bucket == null) {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
-		
-		String bucketPath = Constants.FILE_PATH + File.separator + bucket.getId();
+
+		String bucketPath = Constants.BUCKET_DIR + File.separator + bucket.getId() + Constants.BUCKET_FILE_EXTENSION;
 		ObjectOutputStream outputStream = null;
-		
+
 		try {
-			outputStream = new ObjectOutputStream(new FileOutputStream(bucketPath));			
+			outputStream = new ObjectOutputStream(new FileOutputStream(bucketPath));
 			outputStream.writeObject(bucket);
 			outputStream.flush();
-		}
-		catch(IOException e) {
+		} catch (IOException e) {
 			logger.error(e);
 			throw new ArchiveException(e);
-		}
-		finally {
+		} finally {
 			try {
-				outputStream.close();
+				if (outputStream != null) {
+					outputStream.close();
+				}
 			} catch (IOException e) {
 				logger.error(e);
 				throw new ArchiveException(e);
@@ -191,20 +218,21 @@ public class StorageManager {
 
 	/**
 	 * Read data from disk.
-	 *
+	 * 
 	 * @param bucketId the bucket id
-	 * @param dataEntries the data entries
+	 * @param dataEntries
+	 *            the data entries
 	 */
 	private void readDataFromDisk(int bucketId, List<DataEntry> dataEntries) {
 		List<byte[]> dataList = new ArrayList<>();
-		
-		String filePath = Constants.FILE_PATH + File.separator + bucketId;
+
+		String filePath = Constants.DATA_DIR + File.separator + bucketId + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
-		
+
 		try {
 			raf = new RandomAccessFile(filePath, "r");
-			
-			for(DataEntry dataEntry : dataEntries) {
+
+			for (DataEntry dataEntry : dataEntries) {
 				byte[] data = new byte[dataEntry.getDataLength()];
 				// Seek to the data's offset and read the data.
 				raf.seek(dataEntry.getOffset());
@@ -214,65 +242,78 @@ public class StorageManager {
 		} catch (IOException e) {
 			logger.error(e);
 			throw new ArchiveException(e);
-		}
-		finally{
+		} finally {
 			try {
-				raf.close();
+				if (raf != null) {
+					raf.close();
+				}
 			} catch (IOException e) {
 				logger.error(e);
 				throw new ArchiveException(e);
 			}
 		}
-		
+
 	}
-	
+
 	/**
 	 * Write data to disk.
-	 *
-	 * @param bucketId the bucket id
-	 * @param dataToWrite the data
-	 * @param index the bucket index
+	 * 
+	 * @param bucketId
+	 *            the bucket id
+	 * @param dataToWrite
+	 *            the data
+	 * @param index
+	 *            the bucket index
 	 */
 	private void writeDataToDisk(int bucketId, Map<String, byte[]> dataToWrite, Map<String, DataEntry> index) {
 		OutputStream os = null;
-		
-		String filePath = Constants.FILE_PATH + File.separator + bucketId;
+		System.out.println("Writing data to disk");
+
+		String filePath = Constants.DATA_DIR + File.separator + bucketId + Constants.DATASTORE_FILE_EXTENSION;
 		try {
-			File f = new File(filePath);
-			long offset = f.length();
-			if (offset > 0){
-				offset ++;
+			File f = new File(filePath.substring(0, filePath.lastIndexOf("/")));
+			// If this is the first write, create the file first.
+			if(! f.exists()) {
+				f.mkdirs();
 			}
 			
-			os = new FileOutputStream(f, true);
+			long offset = 0;
+			f = new File(filePath);
 			
-			for(Map.Entry<String, byte[]> entry : dataToWrite.entrySet()) {
+			if(f.exists()) {
+				offset = f.length() + 1;
+			}
+			
+			os = new FileOutputStream(filePath, true);
+
+			for (Map.Entry<String, byte[]> entry : dataToWrite.entrySet()) {
 				byte[] data = entry.getValue();
 				os.write(data);
-				
+
 				DataEntry dataEntry = new DataEntry();
 				dataEntry.setOffset(offset);
 				dataEntry.setDataLength(data.length);
-				
+
 				// Add the entry to the bucket's index.
 				index.put(entry.getKey(), dataEntry);
-				
+
 				offset += data.length;
-				
-			}	
-			
+
+			}
+
 		} catch (IOException e) {
 			logger.error(e);
 			throw new ArchiveException(e);
-		}
-		finally {
+		} finally {
 			try {
-				os.close();
+				if (os != null) {
+					os.close();
+				}
 			} catch (IOException e) {
 				logger.error(e);
-				throw new ArchiveException(e);				
+				throw new ArchiveException(e);
 			}
-			
+
 		}
 	}
 

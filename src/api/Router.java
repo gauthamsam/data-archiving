@@ -1,6 +1,7 @@
 package api;
 
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 
 /**
  * The interface using which the data from the client is routed to the appropriate Server.
@@ -16,13 +17,13 @@ public interface Router extends Remote{
 	 * @param hash the hash
 	 * @param data the data
 	 */
-	public void put(byte[] hash, byte[] data);
+	public void put(byte[] hash, byte[] data) throws RemoteException;
 	
 	/**
 	 * Gets the data associated with the hash.
 	 *
 	 * @param hash the hash
 	 */
-	public void get(byte[] hash);
+	public void get(byte[] hash) throws RemoteException;
 
 }
