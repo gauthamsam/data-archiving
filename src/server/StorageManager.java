@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
@@ -36,6 +37,9 @@ public class StorageManager {
 
 	/** The storage manager. */
 	private static StorageManager storageManager;
+		
+	/** The hashmap to synchronize access to a bucket */
+	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -61,12 +65,18 @@ public class StorageManager {
 			throw new IllegalArgumentException("Invalid task queues.");
 		}
 		
-		System.out.println("Processing Bucket: " + bucketId);
-
-		// Get the bucket from disk.
-		Bucket bucket = readBucket(bucketId);
-
-		synchronized (bucket) {
+		System.out.println("StorageManager - Processing Bucket: " + bucketId);
+		
+		/** The lockObject acts as the lock for the following critical section. 
+		 *  No two threads operating on the same bucket will execute this section.
+		 *  Any number of threads can execute the section as long as they are operating on different buckets. 
+		 */
+		Object lockObject = getLock(bucketId);
+		
+		synchronized (lockObject) {
+			Bucket bucket = readBucket(bucketId);
+			System.out.println("Bucket: " + bucket);
+			
 			if(getQueue != null) {
 				// Do the read operations.
 				readData(bucket, getQueue);
@@ -77,6 +87,21 @@ public class StorageManager {
 				writeData(bucket, putQueue);
 			}
 		}
+	}
+	
+	/**
+	 * Gets the lock object for the given bucketId.
+	 *
+	 * @param bucketId the bucket id
+	 * @return the lock
+	 */
+	private synchronized Object getLock(int bucketId) {		
+		Object obj = syncMap.get(bucketId);
+		if (obj == null) {
+			obj = new Object();
+			syncMap.put(bucketId, obj);
+		}
+		return obj;
 	}
 
 	/**
@@ -99,7 +124,7 @@ public class StorageManager {
 
 			// If the index does not contain the hash
 			if (offset == null) {
-				logger.error("There is no data associated with the hash " + task.getHash());
+				logger.error("Error: There is no data associated with the hash " + task.getHash());
 				System.out.println("There is no data associated with the hash " + task.getHash());
 			}
 
@@ -107,7 +132,7 @@ public class StorageManager {
 		}
 
 		Collections.sort(offsets);
-		readDataFromDisk(bucket.getId(), offsets);
+		readDataFromDisk(bucket, offsets);
 	}
 
 	/**
@@ -122,8 +147,7 @@ public class StorageManager {
 		// Filter the data that is to be written to disk. i.e. Write only the
 		// blocks that are not already there.
 		Map<String, byte[]> dataToWrite = new HashMap<>();
-		for (Task task : tasks) {
-			System.out.println("Task hash " + task.getHash());
+		for (Task task : tasks) {			
 			if (! index.containsKey(task.getHash())) {
 				dataToWrite.put(task.getHash(), task.getData());
 				/** Put a dummy entry in the index.
@@ -168,9 +192,10 @@ public class StorageManager {
 			
 			inputStream = new ObjectInputStream(new FileInputStream(bucketPath));
 			bucket = (Bucket) inputStream.readObject();
-			System.out.println("Bucket deserialized from file.");
+			System.out.println("Bucket deserialized from file.");			
 			
 		} catch (IOException e) {
+			e.printStackTrace();
 			throw new ArchiveException(e);
 		} catch (ClassNotFoundException e) {
 			logger.error("Bucket not found. Exception: " + e);
@@ -224,16 +249,16 @@ public class StorageManager {
 
 	/**
 	 * Read data from disk.
-	 * 
-	 * @param bucketId the bucket id
+	 *
+	 * @param bucket the bucket
 	 * @param dataEntries the data entries
 	 */
-	private void readDataFromDisk(int bucketId, List<DataEntry> dataEntries) {
+	private void readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries) {
 		List<byte[]> dataList = new ArrayList<>();
 
-		String filePath = Constants.DATA_DIR + File.separator + bucketId + Constants.DATASTORE_FILE_EXTENSION;
+		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
-		System.out.println("Reading Data from Disk");
+		System.out.println("Reading data from disk for bucket " + bucket.getId());
 		OutputStream os = null;
 		try {
 			raf = new RandomAccessFile(filePath, "r");
@@ -243,8 +268,7 @@ public class StorageManager {
 				byte[] data = new byte[dataEntry.getDataLength()];
 				// Seek to the data's offset and read the data.
 				raf.seek(dataEntry.getOffset());
-				raf.read(data, 0, data.length);
-				System.out.println("Offset: " + dataEntry.getOffset() + " Data: " + data);
+				raf.read(data, 0, data.length);				
 				os.write(data);
 				dataList.add(data);
 			}
@@ -270,14 +294,13 @@ public class StorageManager {
 
 	/**
 	 * Write data to disk.
-	 * 
-	 * @param bucketId the bucket id
+	 *
+	 * @param bucket the bucket
 	 * @param dataToWrite the data
-	 * @param index the bucket index
 	 */
 	private void writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
 		OutputStream os = null;
-		System.out.println("Writing data to disk");
+		System.out.println("Writing data to disk for bucket " + bucket.getId());
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		try {

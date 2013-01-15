@@ -27,7 +27,9 @@ public class StorageClient {
 		byte[] hash = null;
 		List<byte[]> hashList = new ArrayList<>();
 		
-		for (int i = 0; i < 5; i++) {
+		long startTime = System.currentTimeMillis();
+		
+		for (int i = 0; i < 100; i++) {
 			data = "sample text " + i;
 		    try {
 		        md = MessageDigest.getInstance("SHA-1");
@@ -40,10 +42,12 @@ public class StorageClient {
 			hashList.add(hash);
 		}
 		
-		Thread.sleep(3000);
-		for(byte[] hash1 : hashList) {
-			router.get(hash1);
-		}
+		long endTime = System.currentTimeMillis();
+		System.out.println("Time taken: " + (endTime - startTime) + " ms ");
+//		Thread.sleep(3000);
+//		for(byte[] hash1 : hashList) {
+//			router.get(hash1);
+//		}
 	}
 
 }

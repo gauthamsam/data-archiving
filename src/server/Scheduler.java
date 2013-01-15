@@ -29,10 +29,9 @@ public class Scheduler extends Thread {
 	/* (non-Javadoc)
 	 * @see java.lang.Thread#run()
 	 */
-	public void run() {
-		
+	public void run() {		
 		System.out.println("Thread " + threadId + " running.");
-		System.out.println("Accumulator: " + accumulator);
+		
 		Map<Integer, Queue<Task>> putMap = accumulator.getPutMap();
 		Map<Integer, Queue<Task>> getMap = accumulator.getGetMap();
 		BlockingQueue<Integer> priorityQueue = accumulator.getQueue();
@@ -50,15 +49,15 @@ public class Scheduler extends Thread {
 				// O(log(n))			
 				bucket = priorityQueue.take();			
 				
-				System.out.println("Bucket to be processed: " + bucket);
-				System.out.println("getMap " + getMap);
+				System.out.println("Thread " + threadId + " taking on bucket " + bucket);
+				
 				getQueue = getMap.remove(bucket);
 				putQueue = putMap.remove(bucket);
-				System.out.println("getQueue " + getQueue);
-				System.out.println("putQueue " + putQueue);
+//				System.out.println("getQueue " + getQueue);
+//				System.out.println("putQueue " + putQueue);
 				
 				maxSize = ((getQueue != null) ? getQueue.size() : 0 ) + ((putQueue != null) ? putQueue.size() : 0);
-				System.out.println("maxSize: " + maxSize);
+//				System.out.println("maxSize: " + maxSize);
 				
 				if (maxSize > Constants.BUFFER_SIZE) {
 					StorageManager.getInstance().processData(bucket, getQueue, putQueue);

@@ -4,9 +4,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**
- * The interface using which the data from the client is routed to the appropriate Server.
+ * The interface using which the data from the Client is routed to the appropriate Server.
  */
-public interface Router extends Remote{
+public interface Router extends Remote {
 
 	/** The Constant SERVICE_NAME. */
 	public static final String SERVICE_NAME = "Router";

@@ -66,5 +66,24 @@ public class Bucket implements Serializable{
 	public void setIndex(Map<String, DataEntry> index) {
 		this.index = index;
 	}	
+	
+	@Override
+	public int hashCode() {
+		return id;
+	}
+	
+	@Override
+	public boolean equals(Object obj) { 
+		if (obj == null || obj.getClass() != getClass())
+            return false;
+        if (obj == this)
+            return true;
+        return this.id == ((Bucket)obj).getId(); 
+	}
+	
+	@Override
+	public String toString() {
+		return String.valueOf(id);
+	}
 
 }

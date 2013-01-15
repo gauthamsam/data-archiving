@@ -41,7 +41,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = 1; //Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -52,8 +52,7 @@ public class Accumulator {
 	/**
 	 * Instantiates a new accumulator.
 	 */
-	private Accumulator() {
-		System.out.println("Accumulator's constructor");
+	private Accumulator() {		
 		this.putMap = new ConcurrentHashMap<Integer, Queue<Task>>();
 		this.getMap = new ConcurrentHashMap<Integer, Queue<Task>>();
 		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());	
@@ -127,7 +126,7 @@ public class Accumulator {
 		}
 		tasks.add(task);
 		putMap.put(bucket_hash, tasks);
-		System.out.println("Bucket " + bucket_hash + " added to Putmap.");
+		
 		// Remove the bucket from the priority queue before adding it.
 		// O(n)
 		queue.remove(bucket_hash);
