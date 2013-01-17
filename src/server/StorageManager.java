@@ -43,7 +43,7 @@ public class StorageManager {
 	/** The storage manager. */
 	private static StorageManager storageManager;
 		
-	/** The hashmap to synchronize access to a bucket */
+	/** The hashmap to synchronize access to a bucket. */
 	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
 
 	/**
@@ -124,33 +124,30 @@ public class StorageManager {
 		List<DataEntry> dataEntryList = new ArrayList<>();
 		DataEntry dataEntry = null;
 		String hash = null;
-		ServerToRouter router = null;
-		try {
-			router = StorageServerImpl.getInstance().getRouter();
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+		List<Status> statusList = new ArrayList<>();
 		
 		for (Task task : tasks) {
 			hash = task.getHash();
 			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
-			if (dataEntry == null) {
+			if (dataEntry == null) {				
+				GetStatus status = new GetStatus();
+				status.setSuccess(false);
+				status.setHash(hash);
+				statusList.add(status);
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
 				System.out.println("There is no data associated with the hash " + task.getHash());
 			}
 			dataEntry.setHash(hash);
 			dataEntryList.add(dataEntry);
 		}
-
+		
+		// Sort the list based on the disk offsets to do sequential reads. 
 		Collections.sort(dataEntryList);
-		List<Status> statusList = readDataFromDisk(bucket, dataEntryList);
-		try {
-			router.processResponse(statusList);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+		statusList.addAll(readDataFromDisk(bucket, dataEntryList));
+		
+		processResponse(statusList);
 	}
 
 	/**
@@ -165,38 +162,35 @@ public class StorageManager {
 		// Filter the data that is to be written to disk. i.e. Write only the
 		// blocks that are not already there.
 		Map<String, byte[]> dataToWrite = new HashMap<>();
-		for (Task task : tasks) {			
-			if (! index.containsKey(task.getHash())) {
-				dataToWrite.put(task.getHash(), task.getData());
+		List<Status> statusList = new ArrayList<>();		
+		String hash = null;
+
+		for (Task task : tasks) {
+			hash = task.getHash();
+			if (! index.containsKey(hash)) {
+				dataToWrite.put(hash, task.getData());
 				/** Put a dummy entry in the index.
-				 *  When the task queue has two or more data blocks which are same, we will add only one copy to 'dataToWrite' map.
+				 *  So, when the task queue has two or more data blocks which are same, we will add only one copy to 'dataToWrite' map.
 				 */
-				index.put(task.getHash(), null);
+				index.put(hash, null);
 			}
-		}
+			else {				
+				PutStatus status = new PutStatus();
+				status.setHash(hash);
+				status.setSuccess(true);
+				statusList.add(status);
+			}
+		}		
 		
-		ServerToRouter router = null;
-		try {
-			router = StorageServerImpl.getInstance().getRouter();
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
-		
-		if (dataToWrite.size() > 0) {
-	
+		if (dataToWrite.size() > 0) {	
 			// The bucket's index will be modified in place.
-			List<Status> statusList = writeDataToDisk(bucket, dataToWrite);
+			statusList.addAll(writeDataToDisk(bucket, dataToWrite));
 	
 			// Write (serialize) the modified bucket back to disk.
 			writeBucket(bucket);
-			
-			try {
-				router.processResponse(statusList);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-			
+						
 		}
+		processResponse(statusList);
 	}
 
 	/**
@@ -287,6 +281,7 @@ public class StorageManager {
 	 *
 	 * @param bucket the bucket
 	 * @param dataEntries the data entries
+	 * @return list
 	 */
 	private List<Status> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries) {
 		List<Status> statusList = new ArrayList<>();
@@ -305,9 +300,8 @@ public class StorageManager {
 				raf.seek(dataEntry.getOffset());
 				raf.read(data, 0, data.length);
 				os.write(data);
-				// dataList.add(data);
 				
-				// Generate a Status and send it to the Client via the Router.
+				// Generate a Status for each read.
 				GetStatus status = new GetStatus();
 				status.setSuccess(true);
 				status.setData(data);
@@ -341,6 +335,7 @@ public class StorageManager {
 	 *
 	 * @param bucket the bucket
 	 * @param dataToWrite the data
+	 * @return list
 	 */
 	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
 		OutputStream os = null;
@@ -402,6 +397,21 @@ public class StorageManager {
 
 		}
 		return statusList;
+	}
+	
+	/**
+	 * Send the response to be processed by the router.
+	 *
+	 * @param statusList the status list
+	 */
+	private void processResponse(List<Status> statusList) {		
+		try {
+			ServerToRouter router = null;
+			router = StorageServerImpl.getInstance().getRouter();
+			router.processResponse(statusList);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

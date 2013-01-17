@@ -41,7 +41,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = 2;//Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -118,29 +118,36 @@ public class Accumulator {
 	 * @param bucket_hash the bucket_hash
 	 * @param task the task
 	 */
-	public void addToPutQueue(int bucket_hash, Task task) {
+	public synchronized void addToPutQueue(int bucket_hash, Task task) {
 		// Check if the putMap already has a task queue for this bucket.
 		Queue<Task> tasks = putMap.get(bucket_hash);
 		if (tasks == null) { 
 			tasks = new LinkedList<>();
 		}
+		
 		tasks.add(task);
+		// Check if the total number of tasks has exceeded the threshold.
+		Queue<Task> getQueue = getMap.get(bucket_hash);
+		int queueSize = ((getQueue != null) ? getQueue.size() : 0 ) + tasks.size();
+		if (queueSize > Constants.BUFFER_SIZE) {
+			// Remove the bucket from the priority queue before adding it.
+			// O(n)
+			queue.remove(bucket_hash);
+			// O(log(n))
+			queue.add(bucket_hash);			
+		}
+		
 		putMap.put(bucket_hash, tasks);
 		
-		// Remove the bucket from the priority queue before adding it.
-		// O(n)
-		queue.remove(bucket_hash);
-		// O(log(n))
-		queue.add(bucket_hash);		
 	}
-	
+		
 	/**
 	 * Adds the task to get queue.
 	 *
 	 * @param bucket_hash the bucket_hash
 	 * @param task the task
 	 */
-	public void addToGetQueue(int bucket_hash, Task task) {
+	public synchronized void addToGetQueue(int bucket_hash, Task task) {
 		// Check if the getMap already has a task queue for this bucket.		
 		Queue<Task> tasks = getMap.get(bucket_hash);		
 		if (tasks == null) { 
@@ -148,15 +155,19 @@ public class Accumulator {
 		}
 		
 		tasks.add(task);
+		
+		// Check if the total number of tasks has exceeded the threshold.
+		Queue<Task> putQueue = putMap.get(bucket_hash);
+		int queueSize = ((putQueue != null) ? putQueue.size() : 0 ) + tasks.size();
+		if (queueSize > Constants.BUFFER_SIZE) {
+			// Remove the bucket from the priority queue before adding it.
+			// O(n)
+			queue.remove(bucket_hash);
+			// O(log(n))
+			queue.add(bucket_hash);			
+		}
 		getMap.put(bucket_hash, tasks);
-
-		// Remove the bucket from the priority queue before adding it.
-		// O(n)
-		queue.remove(bucket_hash);
-		// O(log(n))
-		queue.add(bucket_hash);
 	}
-	
 	
 	/**
 	 * The Comparator that defines the ordering (priority) of the elements in the priority queue.

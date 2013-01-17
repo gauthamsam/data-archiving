@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
-import utils.Constants;
 import api.Task;
 
 /**
@@ -39,12 +38,10 @@ public class Scheduler extends Thread {
 		Queue<Task> putQueue = null;
 		Queue<Task> getQueue = null;
 		int bucket = 0;
-		int maxSize = 0;
 		
 		while (true) {
 			try{
 				// The task queues of the bucket that has the highest priority can be removed and processed.
-				//System.out.println("Waiting on " + priorityQueue);
 				
 				// O(log(n))			
 				bucket = priorityQueue.take();			
@@ -55,13 +52,7 @@ public class Scheduler extends Thread {
 				putQueue = putMap.remove(bucket);
 //				System.out.println("getQueue " + getQueue);
 //				System.out.println("putQueue " + putQueue);
-				
-				maxSize = ((getQueue != null) ? getQueue.size() : 0 ) + ((putQueue != null) ? putQueue.size() : 0);
-//				System.out.println("maxSize: " + maxSize);
-				
-				if (maxSize > Constants.BUFFER_SIZE) {
-					StorageManager.getInstance().processData(bucket, getQueue, putQueue);
-				}
+				StorageManager.getInstance().processData(bucket, getQueue, putQueue);
 			}
 			catch(Exception e){
 				System.out.println("Exception in Scheduler!");

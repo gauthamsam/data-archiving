@@ -29,16 +29,24 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = -3548712810447954655L;
 
-	/** The server map. */
+	/** The mapping between the server number and the storage server. */
 	private Map<Integer, StorageServer> serverMap;
 	
+	/** The router implementation instance. */
 	private static RouterImpl router;
 	
+	/** The Client interface that will be used during asynchronous callback. */
 	private RouterToClient client;
 	
-	/** The number of Storage Servers. */
+	/** The number of storage servers registered with the Router. */
 	private int numServers;
 	
+	/**
+	 * Gets the single instance of RouterImpl.
+	 *
+	 * @return single instance of RouterImpl
+	 * @throws RemoteException the remote exception
+	 */
 	public static RouterImpl getInstance() throws RemoteException {
 		if(router == null) {
 			router = new RouterImpl();
@@ -57,6 +65,9 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		numServers = 0;
 	}
 
+	/* (non-Javadoc)
+	 * @see api.Router#setClient(api.RouterToClient)
+	 */
 	public void setClient(RouterToClient client) throws RemoteException {
 		this.client = client;
 	}
