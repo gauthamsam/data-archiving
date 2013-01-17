@@ -30,7 +30,7 @@ public class Scheduler extends Thread {
 	 * @see java.lang.Thread#run()
 	 */
 	public void run() {		
-		System.out.println("Thread " + threadId + " running.");
+		//System.out.println("Thread " + threadId + " running.");
 		
 		Map<Integer, Queue<Task>> putMap = accumulator.getPutMap();
 		Map<Integer, Queue<Task>> getMap = accumulator.getGetMap();
@@ -44,12 +44,12 @@ public class Scheduler extends Thread {
 		while (true) {
 			try{
 				// The task queues of the bucket that has the highest priority can be removed and processed.
-				System.out.println("Waiting on " + priorityQueue);
+				//System.out.println("Waiting on " + priorityQueue);
 				
 				// O(log(n))			
 				bucket = priorityQueue.take();			
 				
-				System.out.println("Thread " + threadId + " taking on bucket " + bucket);
+				//System.out.println("Thread " + threadId + " taking on bucket " + bucket);
 				
 				getQueue = getMap.remove(bucket);
 				putQueue = putMap.remove(bucket);

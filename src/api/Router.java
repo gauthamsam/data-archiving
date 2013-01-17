@@ -1,3 +1,6 @@
+/*
+ * @author Gautham Narayanasamy
+ */
 package api;
 
 import java.rmi.Remote;
@@ -11,19 +14,13 @@ public interface Router extends Remote {
 	/** The Constant SERVICE_NAME. */
 	public static final String SERVICE_NAME = "Router";
 	
+	public void setClient(RouterToClient client) throws RemoteException;
 	/**
-	 * Puts the hash and the data to the be stored.
+	 * Route request.
 	 *
-	 * @param hash the hash
-	 * @param data the data
+	 * @param task the task
+	 * @throws RemoteException the remote exception
 	 */
-	public void put(byte[] hash, byte[] data) throws RemoteException;
-	
-	/**
-	 * Gets the data associated with the hash.
-	 *
-	 * @param hash the hash
-	 */
-	public void get(byte[] hash) throws RemoteException;
+	public void routeRequest(Task task) throws RemoteException;
 
 }

@@ -9,63 +9,57 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
-
-import exceptions.ArchiveException;
-
 import utils.Constants;
-
 import api.Router;
+import api.RouterToClient;
 import api.ServerToRouter;
 import api.StorageServer;
 import api.Task;
+import entities.Status;
+import exceptions.ArchiveException;
 
 /**
  * The Class RouterImpl contains the implementations of the logic to route the archiving requests to the appropriate Storage servers based on the hash.
  */
 public class RouterImpl extends UnicastRemoteObject implements Router, ServerToRouter{
 
-
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = -3548712810447954655L;
 
 	/** The server map. */
-	private Map<Integer, StorageServer> serverMap = new HashMap<>();
+	private Map<Integer, StorageServer> serverMap;
+	
+	private static RouterImpl router;
+	
+	private RouterToClient client;
 	
 	/** The number of Storage Servers. */
-	private int numServers = 0;
+	private int numServers;
 	
-	
-	protected RouterImpl() throws RemoteException {
-		super();		
+	public static RouterImpl getInstance() throws RemoteException {
+		if(router == null) {
+			router = new RouterImpl();
+		}
+		return router;	
 	}
 	
-	/* (non-Javadoc)
-	 * @see api.Router#put(byte[], byte[])
+	/**
+	 * Instantiates a new router impl.
+	 *
+	 * @throws RemoteException the remote exception
 	 */
-	@Override
-	public void put(byte[] hash, byte[] data) throws RemoteException {
-		Task task = new Task();
-		task.setData(data);
-		task.setHash(new String(hash));
-		task.setType(Constants.TASK_TYPE_PUT);
-		
-		routeRequest(task);
+	private RouterImpl() throws RemoteException {
+		super();
+		serverMap = new HashMap<>();
+		numServers = 0;
 	}
 
-	/* (non-Javadoc)
-	 * @see api.Router#get(byte[])
-	 */
-	@Override
-	public void get(byte[] hash) throws RemoteException {
-		Task task = new Task();
-		task.setHash(new String(hash));
-		task.setType(Constants.TASK_TYPE_GET);
-		
-		routeRequest(task);
-	}	
+	public void setClient(RouterToClient client) throws RemoteException {
+		this.client = client;
+	}
 
 	/* (non-Javadoc)
 	 * @see api.ServerToRouter#register(api.StorageServer)
@@ -73,16 +67,16 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	@Override
 	public synchronized void register(StorageServer server) throws RemoteException {
 		System.out.println("Server " + numServers + " registered!");
-		serverMap.put(numServers++, server);
-		
+		serverMap.put(numServers++, server);		
 	}
 	
 	/**
 	 * Based on the hash value, route the request to the appropriate StorageServer.
 	 *
 	 * @param task the task
+	 * @throws RemoteException the remote exception
 	 */
-	private void routeRequest(Task task) throws RemoteException {
+	public void routeRequest(Task task) throws RemoteException {
 		byte[] hash = task.getHash().getBytes();
 		
 		int value = 0;
@@ -97,8 +91,22 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 			value = (value << 8) | hash[i];
 		}
 		System.out.println("Bucket hash value: " + value);
-		System.out.println("Routing to Server " + value % numServers);
-		serverMap.get(value % numServers).assignTask(value, task);
+		System.out.println("numServers: " + numServers);
+		int modValue = (value < 0) ? (numServers - (Math.abs(value) % numServers) ) % numServers : (value % numServers);
+		System.out.println("Routing to Server " + modValue);
+		
+		try {
+			serverMap.get(modValue).assignTask(value, task);
+		} catch (RemoteException e) {			
+			e.printStackTrace();
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see api.ServerToRouter#processResponse(entities.Status)
+	 */
+	public void processResponse(List<Status> status) throws RemoteException {
+		client.setStatus(status);
 	}
 	
 	/**
@@ -112,7 +120,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		// from a remote codebase
 		System.setSecurityManager(new RMISecurityManager());
 		// instantiate a router object
-		Router router = new RouterImpl();
+		Router router = RouterImpl.getInstance();
 		// construct an rmiregistry within this JVM using the default port
 		Registry registry = LocateRegistry.createRegistry(1099);
 		// bind router in rmiregistry.

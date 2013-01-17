@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,9 +23,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 import utils.Constants;
+import api.ServerToRouter;
 import api.Task;
 import entities.Bucket;
 import entities.DataEntry;
+import entities.GetStatus;
+import entities.PutStatus;
+import entities.Status;
 import exceptions.ArchiveException;
 
 /**
@@ -65,7 +70,7 @@ public class StorageManager {
 			throw new IllegalArgumentException("Invalid task queues.");
 		}
 		
-		System.out.println("StorageManager - Processing Bucket: " + bucketId);
+		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
 		
 		/** The lockObject acts as the lock for the following critical section. 
 		 *  No two threads operating on the same bucket will execute this section.
@@ -75,7 +80,7 @@ public class StorageManager {
 		
 		synchronized (lockObject) {
 			Bucket bucket = readBucket(bucketId);
-			System.out.println("Bucket: " + bucket);
+			//System.out.println("Bucket: " + bucket);
 			
 			if(getQueue != null) {
 				// Do the read operations.
@@ -116,23 +121,36 @@ public class StorageManager {
 		 * Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
 		 */
-		List<DataEntry> offsets = new ArrayList<>();
-		DataEntry offset = null;
-
+		List<DataEntry> dataEntryList = new ArrayList<>();
+		DataEntry dataEntry = null;
+		String hash = null;
+		ServerToRouter router = null;
+		try {
+			router = StorageServerImpl.getInstance().getRouter();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+		
 		for (Task task : tasks) {
-			offset = index.get(task.getHash());
+			hash = task.getHash();
+			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
-			if (offset == null) {
+			if (dataEntry == null) {
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
 				System.out.println("There is no data associated with the hash " + task.getHash());
 			}
-
-			offsets.add(offset);
+			dataEntry.setHash(hash);
+			dataEntryList.add(dataEntry);
 		}
 
-		Collections.sort(offsets);
-		readDataFromDisk(bucket, offsets);
+		Collections.sort(dataEntryList);
+		List<Status> statusList = readDataFromDisk(bucket, dataEntryList);
+		try {
+			router.processResponse(statusList);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -156,12 +174,29 @@ public class StorageManager {
 				index.put(task.getHash(), null);
 			}
 		}
-
-		// The bucket's index will be modified in place.
-		writeDataToDisk(bucket, dataToWrite);
-
-		// Write (serialize) the modified bucket back to disk.
-		writeBucket(bucket);
+		
+		ServerToRouter router = null;
+		try {
+			router = StorageServerImpl.getInstance().getRouter();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+		
+		if (dataToWrite.size() > 0) {
+	
+			// The bucket's index will be modified in place.
+			List<Status> statusList = writeDataToDisk(bucket, dataToWrite);
+	
+			// Write (serialize) the modified bucket back to disk.
+			writeBucket(bucket);
+			
+			try {
+				router.processResponse(statusList);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+			
+		}
 	}
 
 	/**
@@ -175,12 +210,12 @@ public class StorageManager {
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
 		try {
-			System.out.println("bucket path " + bucketPath);
+			//System.out.println("bucket path " + bucketPath);
 			File file = new File(bucketPath.substring(0, bucketPath.lastIndexOf("/")));
 			
 			// Create the directory if it is not already there.			
 			if (! file.exists()) {
-				System.out.println("Creating directory " + file.getAbsolutePath());
+				//System.out.println("Creating directory " + file.getAbsolutePath());
 				file.mkdirs();
 				return new Bucket(bucketId);
 			}
@@ -192,7 +227,7 @@ public class StorageManager {
 			
 			inputStream = new ObjectInputStream(new FileInputStream(bucketPath));
 			bucket = (Bucket) inputStream.readObject();
-			System.out.println("Bucket deserialized from file.");			
+			//System.out.println("Bucket deserialized from file.");			
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -253,8 +288,8 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param dataEntries the data entries
 	 */
-	private void readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries) {
-		List<byte[]> dataList = new ArrayList<>();
+	private List<Status> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries) {
+		List<Status> statusList = new ArrayList<>();
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
@@ -268,9 +303,16 @@ public class StorageManager {
 				byte[] data = new byte[dataEntry.getDataLength()];
 				// Seek to the data's offset and read the data.
 				raf.seek(dataEntry.getOffset());
-				raf.read(data, 0, data.length);				
+				raf.read(data, 0, data.length);
 				os.write(data);
-				dataList.add(data);
+				// dataList.add(data);
+				
+				// Generate a Status and send it to the Client via the Router.
+				GetStatus status = new GetStatus();
+				status.setSuccess(true);
+				status.setData(data);
+				status.setHash(dataEntry.getHash());
+				statusList.add(status);
 			}
 			
 		} catch (IOException e) {
@@ -289,6 +331,8 @@ public class StorageManager {
 				throw new ArchiveException(e);
 			}
 		}
+		
+		return statusList;
 
 	}
 
@@ -298,11 +342,14 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param dataToWrite the data
 	 */
-	private void writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
+	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
 		OutputStream os = null;
-		System.out.println("Writing data to disk for bucket " + bucket.getId());
+		//System.out.println("Writing data to disk for bucket " + bucket.getId());
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
+		
+		List<Status> statusList = new ArrayList<>();
+		
 		try {
 			File f = new File(filePath.substring(0, filePath.lastIndexOf("/")));
 			// If this is the first write, create the file first.
@@ -318,7 +365,7 @@ public class StorageManager {
 			}
 			
 			os = new FileOutputStream(filePath, true);
-			Map<String, DataEntry> index = bucket.getIndex();
+			Map<String, DataEntry> index = bucket.getIndex();			
 
 			for (Map.Entry<String, byte[]> entry : dataToWrite.entrySet()) {
 				byte[] data = entry.getValue();
@@ -332,6 +379,12 @@ public class StorageManager {
 				index.put(entry.getKey(), dataEntry);
 
 				offset += data.length;
+				
+				// Generate a PutStatus and send it to the client via the router.
+				PutStatus status = new PutStatus();
+				status.setSuccess(true);
+				status.setHash(entry.getKey());
+				statusList.add(status);
 			}
 
 		} catch (IOException e) {
@@ -348,6 +401,7 @@ public class StorageManager {
 			}
 
 		}
+		return statusList;
 	}
 
 }

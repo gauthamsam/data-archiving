@@ -21,6 +21,7 @@ public class Task implements Serializable{
 
 	private int type;
 	
+	private long startTime;
 	
 	/**
 	 * Gets the hash.
@@ -64,6 +65,14 @@ public class Task implements Serializable{
 
 	public void setType(int type) {
 		this.type = type;
+	}
+
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
 	}
 
 }

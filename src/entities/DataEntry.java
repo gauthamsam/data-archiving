@@ -18,6 +18,8 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 
 	/** The length of the data in bytes. */
 	private int dataLength;
+	
+	private transient String hash;
 
 	/**
 	 * Gets the offset.
@@ -61,6 +63,14 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 	@Override
 	public int compareTo(DataEntry o) {
 		return (offset > o.offset) ? 1 : (offset == o.offset) ? 0 : -1;
+	}
+
+	public String getHash() {
+		return hash;
+	}
+
+	public void setHash(String hash) {
+		this.hash = hash;
 	}
 
 }

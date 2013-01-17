@@ -8,7 +8,6 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
 import utils.Constants;
-
 import api.Router;
 import api.ServerToRouter;
 import api.StorageServer;
@@ -22,9 +21,30 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 3592782126605486179L;
 	
+	private static StorageServerImpl server;
+	
+	private ServerToRouter router;
+	
+	public static synchronized StorageServerImpl getInstance() throws RemoteException {
+		if (server == null) {
+			server = new StorageServerImpl();
+		}
+		return server;
+	}
+	
 	protected StorageServerImpl() throws RemoteException {
 		super();		
 	}
+	
+
+	public ServerToRouter getRouter() {
+		return router;
+	}
+
+	public void setRouter(ServerToRouter router) {
+		this.router = router;
+	}
+
 
 	/* (non-Javadoc)
 	 * @see api.StorageServer#assignTask(int, api.Task)
@@ -55,8 +75,10 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 		String routerURL = "//" + routerDomainName + "/" + Router.SERVICE_NAME;
 		ServerToRouter router = (ServerToRouter) Naming.lookup(routerURL);
 		
-		StorageServer server = new StorageServerImpl(); // can throw RemoteException
+		StorageServerImpl server = StorageServerImpl.getInstance();
 		router.register(server);
+		server.setRouter(router);
+		
 		System.out.println("Server is ready.");
 	}
 

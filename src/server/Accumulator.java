@@ -168,8 +168,8 @@ public class Accumulator {
 		 */
 		@Override
 		public int compare(Integer i1, Integer i2) {
-			System.out.println("Integer 1 " + i1);
-			System.out.println("Integer 2 " + i2);
+			//System.out.println("Integer 1 " + i1);
+			//System.out.println("Integer 2 " + i2);
 			
 			Queue<Task> putQueue1 = putMap.get(i1);
 			Queue<Task> getQueue1 = getMap.get(i1);
