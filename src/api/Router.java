@@ -6,6 +6,8 @@ package api;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import entities.Task;
+
 /**
  * The interface using which the data from the Client is routed to the appropriate Server.
  */

@@ -6,6 +6,8 @@ package api;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import entities.Task;
+
 /**
  * The Interface StorageServer.
  */

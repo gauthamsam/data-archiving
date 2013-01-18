@@ -7,7 +7,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
-import api.Task;
+import entities.Task;
+
 
 /**
  * The Class Scheduler.

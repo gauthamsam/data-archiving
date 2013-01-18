@@ -11,8 +11,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import entities.Task;
+
 import utils.Constants;
-import api.Task;
 
 /**
  * The Class Accumulator.
@@ -27,6 +28,8 @@ public class Accumulator {
 	
 	/** The priority queue. */
 	private BlockingQueue<Integer> queue;	
+	
+	private Map<Integer, Long> timerMap;
 	
 	/** The accumulator. */
 	private static Accumulator accumulator;
@@ -55,7 +58,8 @@ public class Accumulator {
 	private Accumulator() {		
 		this.putMap = new ConcurrentHashMap<Integer, Queue<Task>>();
 		this.getMap = new ConcurrentHashMap<Integer, Queue<Task>>();
-		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());	
+		this.queue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());
+		this.timerMap = new ConcurrentHashMap<>();
 	}
 	
 	/**
@@ -123,6 +127,10 @@ public class Accumulator {
 		Queue<Task> tasks = putMap.get(bucket_hash);
 		if (tasks == null) { 
 			tasks = new LinkedList<>();
+			/** When the bucket is encountered for the first time, mark the time.
+			 * When it stays without being scheduled for a long time, schedule it forcefully.
+			 */
+			timerMap.put(bucket_hash, System.currentTimeMillis());
 		}
 		
 		tasks.add(task);

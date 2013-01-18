@@ -22,5 +22,11 @@ public interface ServerToRouter extends Remote{
 	 */
 	public void register(StorageServer server) throws RemoteException;
 	
+	/**
+	 * Process response from the storage servers.
+	 *
+	 * @param status the status
+	 * @throws RemoteException the remote exception
+	 */
 	public void processResponse(List<Status> status) throws RemoteException;
 }

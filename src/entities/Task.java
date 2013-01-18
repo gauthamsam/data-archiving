@@ -1,7 +1,7 @@
 /*
  * @author Gautham Narayanasamy
  */
-package api;
+package entities;
 
 import java.io.Serializable;
 

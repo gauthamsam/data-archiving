@@ -18,7 +18,8 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 
 	/** The length of the data in bytes. */
 	private int dataLength;
-	
+		
+	/** The hash. This need not be serialized. It is used only during reading data from disk and returning them to the client. */
 	private transient String hash;
 
 	/**
@@ -65,10 +66,20 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 		return (offset > o.offset) ? 1 : (offset == o.offset) ? 0 : -1;
 	}
 
+	/**
+	 * Gets the hash.
+	 *
+	 * @return the hash
+	 */
 	public String getHash() {
 		return hash;
 	}
 
+	/**
+	 * Sets the hash.
+	 *
+	 * @param hash the new hash
+	 */
 	public void setHash(String hash) {
 		this.hash = hash;
 	}

@@ -24,12 +24,12 @@ import org.apache.log4j.Logger;
 
 import utils.Constants;
 import api.ServerToRouter;
-import api.Task;
 import entities.Bucket;
 import entities.DataEntry;
 import entities.GetStatus;
 import entities.PutStatus;
 import entities.Status;
+import entities.Task;
 import exceptions.ArchiveException;
 
 /**
@@ -91,6 +91,8 @@ public class StorageManager {
 				// Do the write operations.
 				writeData(bucket, putQueue);
 			}
+			// Make the bucket eligible for garbage collection.
+			bucket = null;
 		}
 	}
 	

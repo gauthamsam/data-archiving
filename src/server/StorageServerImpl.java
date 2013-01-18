@@ -7,11 +7,12 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import entities.Task;
+
 import utils.Constants;
 import api.Router;
 import api.ServerToRouter;
 import api.StorageServer;
-import api.Task;
 
 /**
  * The Class StorageServerImpl.
