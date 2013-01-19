@@ -74,7 +74,7 @@ public class StorageManager {
 		
 		/** The lockObject acts as the lock for the following critical section. 
 		 *  No two threads operating on the same bucket will execute this section.
-		 *  Any number of threads can execute the section as long as they are operating on different buckets. 
+		 *  Any number of threads can execute this section as long as they are operating on different buckets. 
 		 */
 		Object lockObject = getLock(bucketId);
 		
@@ -82,15 +82,16 @@ public class StorageManager {
 			Bucket bucket = readBucket(bucketId);
 			//System.out.println("Bucket: " + bucket);
 			
+			if(putQueue != null) {
+				// Do the write operations.
+				writeData(bucket, putQueue);
+			}
+			
 			if(getQueue != null) {
 				// Do the read operations.
 				readData(bucket, getQueue);
 			}
 
-			if(putQueue != null) {
-				// Do the write operations.
-				writeData(bucket, putQueue);
-			}
 			// Make the bucket eligible for garbage collection.
 			bucket = null;
 		}
@@ -141,6 +142,7 @@ public class StorageManager {
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
 				System.out.println("There is no data associated with the hash " + task.getHash());
 			}
+			
 			dataEntry.setHash(hash);
 			dataEntryList.add(dataEntry);
 		}
