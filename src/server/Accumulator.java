@@ -47,7 +47,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = 2;//Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = 4;//Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -123,49 +123,45 @@ public class Accumulator {
 	/**
 	 * Adds the task to put queue.
 	 *
-	 * @param bucket_hash the bucket_hash
+	 * @param bucketId the bucketId
 	 * @param task the task
 	 */
-	public synchronized void addToPutQueue(int bucket_hash, Task task) {
+	public void addToPutQueue(int bucketId, Task task) {
 		// Check if the putMap already has a task queue for this bucket.
-		Queue<Task> tasks = putMap.get(bucket_hash);
+		Queue<Task> tasks = putMap.get(bucketId);
 		if (tasks == null) {
 			tasks = new LinkedList<>();
 		}
 		
 		tasks.add(task);
+		
 		// Check if the total number of tasks has exceeded the threshold.
-		Queue<Task> getQueue = getMap.get(bucket_hash);
+		Queue<Task> getQueue = getMap.get(bucketId);
 		int queueSize = ((getQueue != null) ? getQueue.size() : 0 ) + tasks.size();
 		if (queueSize > Constants.BUFFER_SIZE) {
-			// Check if the priority queue contains the bucket before adding it.
-			// O(n)
-			if(! scheduleQueue.contains(bucket_hash)) {
-    			// O(log(n))
-    			scheduleQueue.add(bucket_hash);
-			}
-			timerMap.remove(bucket_hash);
+			addToScheduleQueue(bucketId);
+			timerMap.remove(bucketId);
 		}
 		else {
 			/** When the bucket doesn't have enough requests buffered, mark the time.
-			 * When it stays without being scheduled for a long time, schedule it forcefully.
+			 * When it stays without being scheduled for a specified amount of time, schedule it forcefully.
 			 */
-			// System.out.println("Added " + bucket_hash + " to timer map.");
-			timerMap.put(bucket_hash, System.currentTimeMillis());
+			// System.out.println("Added " + bucketId + " to timer map.");
+			timerMap.put(bucketId, System.currentTimeMillis());
 		}
 		
-		putMap.put(bucket_hash, tasks);		
+		putMap.put(bucketId, tasks);		
 	}
 		
 	/**
 	 * Adds the task to get queue.
 	 *
-	 * @param bucket_hash the bucket_hash
+	 * @param bucketId the bucketId
 	 * @param task the task
 	 */
-	public synchronized void addToGetQueue(int bucket_hash, Task task) {
+	public void addToGetQueue(int bucketId, Task task) {
 		// Check if the getMap already has a task queue for this bucket.		
-		Queue<Task> tasks = getMap.get(bucket_hash);		
+		Queue<Task> tasks = getMap.get(bucketId);		
 		if (tasks == null) {
 			tasks = new LinkedList<>();
 		}
@@ -173,19 +169,28 @@ public class Accumulator {
 		tasks.add(task);
 		
 		// Check if the total number of tasks has exceeded the threshold.
-		Queue<Task> putQueue = putMap.get(bucket_hash);
+		Queue<Task> putQueue = putMap.get(bucketId);
 		int queueSize = ((putQueue != null) ? putQueue.size() : 0 ) + tasks.size();
-		if (queueSize > Constants.BUFFER_SIZE) {
-			// Remove the bucket from the priority queue before adding it.
-			// O(n)
-			if(! scheduleQueue.contains(bucket_hash)) {
-    			// O(log(n))
-    			scheduleQueue.add(bucket_hash);
-			}			
+		if (queueSize > Constants.BUFFER_SIZE) {			
+			addToScheduleQueue(bucketId);
 		}
-		getMap.put(bucket_hash, tasks);
+		getMap.put(bucketId, tasks);
 	}
 	
+	
+	/**
+	 * Adds the bucket to schedule queue.
+	 *
+	 * @param bucketId the bucketId
+	 */
+	public synchronized void addToScheduleQueue(int bucketId) {
+		// Remove the bucket from the priority queue before adding it.
+		// O(n)
+		scheduleQueue.remove(bucketId); 
+		// O(log(n))
+		scheduleQueue.add(bucketId);
+		
+	}
 	/**
 	 * The Comparator that defines the ordering (priority) of the elements in the priority queue.
 	 */
@@ -217,7 +222,7 @@ public class Accumulator {
 	 * If so, it schedules those tasks.
 	 */
 	class ScheduledTimer {
-		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(5);
 
 		private void execute() {
 			final Runnable taskChecker = new Runnable() {
@@ -227,13 +232,9 @@ public class Accumulator {
                 		int key = entry.getKey();
                 		long currentTime = System.currentTimeMillis();
                 		// System.out.println("Time difference " + (entry.getValue() - currentTime));
-                		if ((currentTime - entry.getValue()) > 500) {
+                		if ((currentTime - entry.getValue()) > 200) {
                 			System.out.println("Adding " + key + " to scheduler queue.");
-                			
-                			if( ! scheduleQueue.contains(key)) {               			
-	                			// O(log(n))
-	                			scheduleQueue.add(key);
-                			}
+                			addToScheduleQueue(key);
                 			timerMap.remove(key);
                 		}
                 	}
@@ -241,8 +242,6 @@ public class Accumulator {
             };
             
 			final ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(taskChecker, 0, 100, TimeUnit.MILLISECONDS);
-			scheduledFuture.isDone();
-
 			//scheduledExecutorService.shutdown();
 		}
 	}

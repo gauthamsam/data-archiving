@@ -54,7 +54,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	 * @return single instance of StorageClientImpl
 	 * @throws RemoteException the remote exception
 	 */
-	public static StorageClientImpl getInstance() throws RemoteException{
+	public static synchronized StorageClientImpl getInstance() throws RemoteException {
 		if (client == null) {
 			client = new StorageClientImpl();
 		}
@@ -66,11 +66,12 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	 *
 	 * @throws RemoteException the remote exception
 	 */
-	private StorageClientImpl() throws RemoteException{
+	private StorageClientImpl() throws RemoteException {
 		super();
 		requestMap = new HashMap<>();
 		statusQueue = new LinkedBlockingQueue<>();
-		new Receiver().start();
+		new InputReceiver().start();
+		new OutputReceiver().start();
 	}
 	
 	/* (non-Javadoc)
@@ -115,7 +116,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		    catch(NoSuchAlgorithmException e) {
 		        e.printStackTrace();
 		    }
-			client.put(hash, data.getBytes());
+			// client.put(hash, data.getBytes());
 			hashList.add(hash);
 		}		
 		
@@ -173,7 +174,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	/**
 	 * The receiver thread will process the return status of the submitted tasks.
 	 */
-	class Receiver extends Thread {
+	class OutputReceiver extends Thread {
 		
 		/** The put_ avg time taken. */
 		private List<Long> put_AvgTimeTaken = new ArrayList<>();

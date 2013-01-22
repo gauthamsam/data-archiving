@@ -20,6 +20,10 @@ Icon?
 ehthumbs.db
 Thumbs.db
 
+# Class files #
+######################
+*.class
+
 # Data files #
 ######################
 storage/

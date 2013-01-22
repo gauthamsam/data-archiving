@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
@@ -45,6 +46,8 @@ public class StorageManager {
 		
 	/** The hashmap to synchronize access to a bucket. */
 	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
+	
+	private AtomicInteger requests = new AtomicInteger();
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -65,7 +68,7 @@ public class StorageManager {
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public void processData(int bucketId, Queue<Task> getQueue,	Queue<Task> putQueue) {
+	public synchronized void processData(int bucketId, Queue<Task> getQueue,	Queue<Task> putQueue) {
 		if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
 			throw new IllegalArgumentException("Invalid task queues.");
 		}
@@ -85,16 +88,19 @@ public class StorageManager {
 			if(putQueue != null) {
 				// Do the write operations.
 				writeData(bucket, putQueue);
+				requests.addAndGet(putQueue.size());
 			}
 			
 			if(getQueue != null) {
 				// Do the read operations.
 				readData(bucket, getQueue);
+				requests.addAndGet(getQueue.size());
 			}
 
 			// Make the bucket eligible for garbage collection.
 			bucket = null;
 		}
+		System.out.println("Requests " + requests);
 	}
 	
 	/**

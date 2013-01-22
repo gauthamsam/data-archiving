@@ -11,6 +11,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import utils.Constants;
 import api.Router;
@@ -19,6 +21,7 @@ import api.ServerToRouter;
 import api.StorageServer;
 import entities.Status;
 import entities.Task;
+import entities.TaskPair;
 import exceptions.ArchiveException;
 
 /**
@@ -30,7 +33,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	private static final long serialVersionUID = -3548712810447954655L;
 
 	/** The mapping between the server number and the storage server. */
-	private Map<Integer, StorageServer> serverMap;
+	private Map<Integer, StorageServerProxy> serverMap;
 	
 	/** The router implementation instance. */
 	private static RouterImpl router;
@@ -77,8 +80,11 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 */
 	@Override
 	public synchronized void register(StorageServer server) throws RemoteException {
-		System.out.println("Server " + numServers + " registered!");
-		serverMap.put(numServers++, server);		
+		System.out.println("Server " + numServers + " registered!");		
+		StorageServerProxy proxy = new StorageServerProxy(numServers, server);
+		proxy.start();
+		serverMap.put(numServers, proxy);		
+		numServers++;
 	}
 	
 	/**
@@ -102,15 +108,10 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 			value = (value << 8) | hash[i];
 		}
 		System.out.println("Bucket hash value: " + value);
-		System.out.println("numServers: " + numServers);
+		
 		int modValue = (value < 0) ? (numServers - (Math.abs(value) % numServers) ) % numServers : (value % numServers);
 		System.out.println("Routing to Server " + modValue);
-		
-		try {
-			serverMap.get(modValue).assignTask(value, task);
-		} catch (RemoteException e) {			
-			e.printStackTrace();
-		}
+		serverMap.get(modValue).assignTask(new TaskPair(value, task));		
 	}
 	
 	/* (non-Javadoc)
@@ -118,6 +119,42 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 */
 	public void processResponse(List<Status> status) throws RemoteException {
 		client.setStatus(status);
+	}
+	
+	/**
+	 * Proxy class for the StorageServer.
+	 * 
+	 *
+	 */
+	class StorageServerProxy extends Thread {
+		private BlockingQueue<TaskPair> taskQueue;		
+		private StorageServer server;
+		private int id;
+		
+		public StorageServerProxy(int id, StorageServer server) {
+			this.id = id;
+			this.server = server;
+			this.taskQueue = new LinkedBlockingQueue<>();
+		}
+		
+		public void run() {
+			while(true) {
+				try {
+					TaskPair taskPair = taskQueue.take();
+					server.assignTask(taskPair.getBucketId(), taskPair.getTask());					
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				catch (RemoteException e) {
+					e.printStackTrace();					
+				}
+			}
+		}
+		
+		public void assignTask(TaskPair taskPair) {
+			taskQueue.add(taskPair);
+		}
+		
 	}
 	
 	/**
