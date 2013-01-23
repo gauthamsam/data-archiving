@@ -130,6 +130,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		private BlockingQueue<TaskPair> taskQueue;		
 		private StorageServer server;
 		private int id;
+		private int numRequests = 0;
 		
 		public StorageServerProxy(int id, StorageServer server) {
 			this.id = id;
@@ -153,6 +154,8 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		
 		public void assignTask(TaskPair taskPair) {
 			taskQueue.add(taskPair);
+			numRequests ++;
+			System.out.println("Num requests routed: " + numRequests);
 		}
 		
 	}

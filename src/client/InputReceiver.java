@@ -3,10 +3,8 @@
  */
 package client;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -45,7 +43,12 @@ public class InputReceiver extends Thread{
             
 			while(true) {
 				connection = service.accept();
-	            BufferedInputStream isr = new BufferedInputStream(connection.getInputStream());
+				
+				ObjectInputStream ois = new ObjectInputStream(connection.getInputStream());
+				
+//				BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+//				
+//	            BufferedInputStream isr = new BufferedInputStream(connection.getInputStream());
 	            
 	            byte[] b = new byte[1024 * 1024];
 	            
@@ -53,11 +56,14 @@ public class InputReceiver extends Thread{
 	            byte[] hash = new byte[20];
 	            
 	            int offset = 0;
-	            int totalBytes = 0;
 	            
-	            while((totalBytes = isr.read(b)) != -1) {
+	            int num =0;
+	            
+	            while((b = (byte[]) ois.readObject()) != null) {
+	            	//b = str.getBytes("UTF-8");
+	            	num++;
 	            	offset = 0;
-	            	System.out.println("bytes read " + new String(b) + " length: " + totalBytes);	            	
+	            	System.out.println("bytes read " + new String(b) + " length: " + b.length);	            	
 	            	
 	            	operation |= b[offset++];
 	            	System.out.println("Operation " + operation);
@@ -72,14 +78,16 @@ public class InputReceiver extends Thread{
 	            	}
 	            	
 	            	else if (operation == 2) { // put operation            		
-	            		byte[] data = new byte[totalBytes - offset];
+	            		byte[] data = new byte[b.length - offset];
 	            		for(int i = 0; i < data.length; i++) {
 	            			data[i] = b[offset++];
 	            		}
-	            		// client.put(hash, data);	            		            		
+	            		client.put(hash, data);	            		            		
 	            	}
 	            	//Thread.sleep(1000);
 	            }
+	            
+	            System.out.println("NUM " + num);
 			}
             
         }

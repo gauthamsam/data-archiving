@@ -4,15 +4,14 @@
 package server;
 
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import utils.Constants;
@@ -32,6 +31,7 @@ public class Accumulator {
 	/** The scheduler queue contains all the buckets that are ready to be scheduled. */
 	private BlockingQueue<Integer> scheduleQueue;	
 	
+	/** The map that would contain the time that each bucket has spent without being scheduled. */
 	private Map<Integer, Long> timerMap;
 	
 	/** The accumulator. */
@@ -47,7 +47,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = 4;//Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -119,6 +119,26 @@ public class Accumulator {
 	public void setScheduleQueue(BlockingQueue<Integer> queue) {
 		this.scheduleQueue = queue;
 	}
+	
+	
+
+	/**
+	 * Gets the timer map.
+	 *
+	 * @return the timer map
+	 */
+	public Map<Integer, Long> getTimerMap() {
+		return timerMap;
+	}
+
+	/**
+	 * Sets the timer map.
+	 *
+	 * @param timerMap the timer map
+	 */
+	public void setTimerMap(Map<Integer, Long> timerMap) {
+		this.timerMap = timerMap;
+	}
 
 	/**
 	 * Adds the task to put queue.
@@ -130,7 +150,7 @@ public class Accumulator {
 		// Check if the putMap already has a task queue for this bucket.
 		Queue<Task> tasks = putMap.get(bucketId);
 		if (tasks == null) {
-			tasks = new LinkedList<>();
+			tasks = new LinkedBlockingQueue<>();
 		}
 		
 		tasks.add(task);
@@ -139,8 +159,7 @@ public class Accumulator {
 		Queue<Task> getQueue = getMap.get(bucketId);
 		int queueSize = ((getQueue != null) ? getQueue.size() : 0 ) + tasks.size();
 		if (queueSize > Constants.BUFFER_SIZE) {
-			addToScheduleQueue(bucketId);
-			timerMap.remove(bucketId);
+			addToScheduleQueue(bucketId);			
 		}
 		else {
 			/** When the bucket doesn't have enough requests buffered, mark the time.
@@ -150,7 +169,7 @@ public class Accumulator {
 			timerMap.put(bucketId, System.currentTimeMillis());
 		}
 		
-		putMap.put(bucketId, tasks);		
+		putMap.put(bucketId, tasks);
 	}
 		
 	/**
@@ -163,7 +182,7 @@ public class Accumulator {
 		// Check if the getMap already has a task queue for this bucket.		
 		Queue<Task> tasks = getMap.get(bucketId);		
 		if (tasks == null) {
-			tasks = new LinkedList<>();
+			tasks = new LinkedBlockingQueue<>();
 		}
 		
 		tasks.add(task);
@@ -189,8 +208,10 @@ public class Accumulator {
 		scheduleQueue.remove(bucketId); 
 		// O(log(n))
 		scheduleQueue.add(bucketId);
-		
+		timerMap.remove(bucketId);
 	}
+	
+	
 	/**
 	 * The Comparator that defines the ordering (priority) of the elements in the priority queue.
 	 */
@@ -200,17 +221,13 @@ public class Accumulator {
 		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
 		 */
 		@Override
-		public int compare(Integer i1, Integer i2) {
-			//System.out.println("Integer 1 " + i1);
-			//System.out.println("Integer 2 " + i2);
-			
+		public synchronized int compare(Integer i1, Integer i2) {			
 			Queue<Task> putQueue1 = putMap.get(i1);
 			Queue<Task> getQueue1 = getMap.get(i1);
 			
 			Queue<Task> putQueue2 = putMap.get(i2);
 			Queue<Task> getQueue2 = getMap.get(i2);
-			
-			
+						
 			return ((putQueue1 != null ? putQueue1.size() : 0) + (getQueue1 != null ? getQueue1.size() : 0)) - ((putQueue2 != null ? putQueue2.size() : 0) + (getQueue2 != null ? getQueue2.size() : 0));			
 		}
 	}
@@ -222,8 +239,13 @@ public class Accumulator {
 	 * If so, it schedules those tasks.
 	 */
 	class ScheduledTimer {
-		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(5);
+		
+		/** The scheduled executor service. */
+		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
+		/**
+		 * Execute.
+		 */
 		private void execute() {
 			final Runnable taskChecker = new Runnable() {
 				
@@ -231,18 +253,16 @@ public class Accumulator {
                 	for (Map.Entry<Integer, Long> entry : timerMap.entrySet()) {
                 		int key = entry.getKey();
                 		long currentTime = System.currentTimeMillis();
-                		// System.out.println("Time difference " + (entry.getValue() - currentTime));
-                		if ((currentTime - entry.getValue()) > 200) {
+                		
+                		if ((currentTime - entry.getValue()) > Constants.MAX_TIME_IN_QUEUE) {                			
                 			System.out.println("Adding " + key + " to scheduler queue.");
                 			addToScheduleQueue(key);
-                			timerMap.remove(key);
                 		}
                 	}
             	}
             };
             
-			final ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(taskChecker, 0, 100, TimeUnit.MILLISECONDS);
-			//scheduledExecutorService.shutdown();
+			scheduledExecutorService.scheduleAtFixedRate(taskChecker, 0, Constants.SCHEDULED_TIMER_PERIOD, TimeUnit.MILLISECONDS);			
 		}
 	}
 }

@@ -33,23 +33,25 @@ public class Scheduler extends Thread {
 		Map<Integer, Queue<Task>> putMap = accumulator.getPutMap();
 		Map<Integer, Queue<Task>> getMap = accumulator.getGetMap();
 		BlockingQueue<Integer> priorityQueue = accumulator.getScheduleQueue();
+		Map<Integer, Long> timerMap = accumulator.getTimerMap();
 		
 		Queue<Task> putQueue = null;
 		Queue<Task> getQueue = null;
 		int bucket = 0;
 		
 		while (true) {
-			try{
+			try {
 				// The task queues of the bucket that has the highest priority can be removed and processed.				
 				// O(log(n))			
 				bucket = priorityQueue.take();
 				
 				getQueue = getMap.remove(bucket);
 				putQueue = putMap.remove(bucket);
+				timerMap.remove(bucket);
 
-				StorageManager.getInstance().processData(bucket, getQueue, putQueue);
+				StorageManager.getInstance().processData(bucket, getQueue, putQueue);				
 			}
-			catch(Exception e){
+			catch(Exception e) {
 				System.out.println("Exception in Scheduler!");
 				e.printStackTrace();
 				continue;

@@ -1,8 +1,7 @@
 package client;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -10,11 +9,16 @@ import java.security.NoSuchAlgorithmException;
 public class DataGenerator {
 
 	public static void main(String[] args) throws InterruptedException {
+		
+		Socket s = null;
 		try {
-			Socket s = new Socket("localhost", 12346);
-			OutputStream os = new BufferedOutputStream(s.getOutputStream());
+			s = new Socket("localhost", 12346);
 			
-			for(int n = 0; n < 10; n++) {
+			ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+			// PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
+			// OutputStream os = new BufferedOutputStream(s.getOutputStream());
+			
+			for(int n = 0; n < 100; n++) {
 				byte[] data = ("sample text" + n).getBytes();
 				System.out.println("data length " + data.length);
 				MessageDigest md = null;
@@ -39,10 +43,17 @@ public class DataGenerator {
 		        
 		        System.out.println("dataToSend " + new String(dataToSend));
 		        System.out.println("length " + dataToSend.length);
-		        os.write(dataToSend);
-		        os.flush();
+		        oos.writeObject(dataToSend);
+		        oos.flush();
+		        // writer.println(dataToSend);
+		        // writer.flush();
+		        //os.write(dataToSend);
+		        //os.write('\n');
+		        //os.flush();
 		        //Thread.sleep(1000);
 			}
+			oos.writeObject(null);
+			oos.flush();
 	        
 			
 		} catch (IOException e) {
@@ -51,6 +62,13 @@ public class DataGenerator {
 		catch(NoSuchAlgorithmException e) {
 	        e.printStackTrace();
 	    }
+		finally {
+			try {
+				s.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		
 	}
 }

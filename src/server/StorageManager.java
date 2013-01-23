@@ -15,9 +15,12 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,6 +51,8 @@ public class StorageManager {
 	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
 	
 	private AtomicInteger requests = new AtomicInteger();
+	
+	private Set<String> hashSet = new HashSet<>();
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -68,9 +73,10 @@ public class StorageManager {
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public synchronized void processData(int bucketId, Queue<Task> getQueue,	Queue<Task> putQueue) {
+	public void processData(int bucketId, Queue<Task> getQueue, Queue<Task> putQueue) {
 		if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
-			throw new IllegalArgumentException("Invalid task queues.");
+			// throw new IllegalArgumentException("Invalid task queues.");
+			return;
 		}
 		
 		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
@@ -99,8 +105,9 @@ public class StorageManager {
 
 			// Make the bucket eligible for garbage collection.
 			bucket = null;
+			
 		}
-		System.out.println("Requests " + requests);
+		// System.out.println("Requests " + requests);
 	}
 	
 	/**
@@ -134,9 +141,16 @@ public class StorageManager {
 		DataEntry dataEntry = null;
 		String hash = null;
 		List<Status> statusList = new ArrayList<>();
+		System.out.println("Reading " + tasks.size() + " tasks at a time!");
 		
-		for (Task task : tasks) {
+		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
+			Task task = iter.next();
 			hash = task.getHash();
+			if(hashSet.contains(hash)) {
+				System.out.println("DUPLICATE!!!");
+			}
+			
+			hashSet.add(hash);
 			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
@@ -151,6 +165,8 @@ public class StorageManager {
 			
 			dataEntry.setHash(hash);
 			dataEntryList.add(dataEntry);
+			// remove the task after processing it in order to avoid situations where there will be duplicate task entries in the bucket queues because of multi-threading.
+			iter.remove();			
 		}
 		
 		// Sort the list based on the disk offsets to do sequential reads. 
@@ -174,9 +190,22 @@ public class StorageManager {
 		Map<String, byte[]> dataToWrite = new HashMap<>();
 		List<Status> statusList = new ArrayList<>();		
 		String hash = null;
-
-		for (Task task : tasks) {
+		
+		System.out.println("Writing " + tasks.size() + " tasks at a time!");
+		
+		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
+			Task task = iter.next();
 			hash = task.getHash();
+			if(hashSet.contains(hash)) {
+				byte[] temp = hash.getBytes();
+				int value = 0;
+				for(int i = 0; i < 4; i++) {
+					value = (value << 8) | temp[i];
+				}
+				System.out.println("DUPLICATE!");
+				System.out.println("Bucket hash value: " + value);				
+			}
+			hashSet.add(hash);
 			if (! index.containsKey(hash)) {
 				dataToWrite.put(hash, task.getData());
 				/** Put a dummy entry in the index.
@@ -190,6 +219,8 @@ public class StorageManager {
 				status.setSuccess(true);
 				statusList.add(status);
 			}
+			// remove the task after processing it in order to avoid situations where there will be duplicate task entries in the bucket queues because of multi-threading.
+			iter.remove();
 		}		
 		
 		if (dataToWrite.size() > 0) {	

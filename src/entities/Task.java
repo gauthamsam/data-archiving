@@ -74,5 +74,20 @@ public class Task implements Serializable{
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null || obj.getClass() != getClass())
+            return false;
+        if (obj == this)
+            return true;
+        return this.hash == ((Task)obj).getHash();
+	}
+	
+	@Override
+	public int hashCode() {
+		return hash.hashCode();
+	}
+	
 
 }

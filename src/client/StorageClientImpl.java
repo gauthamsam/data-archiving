@@ -222,7 +222,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 			put_AvgTimeTaken.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
 			Collections.sort(put_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
-			System.out.println("Avg time: " + put_AvgTimeTaken);
+			// System.out.println("Avg time: " + put_AvgTimeTaken);
 			System.out.println("Size: " + put_AvgTimeTaken.size());
 		}
 	}
