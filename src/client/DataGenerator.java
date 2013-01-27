@@ -18,7 +18,7 @@ public class DataGenerator {
 			// PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
 			// OutputStream os = new BufferedOutputStream(s.getOutputStream());
 			
-			for(int n = 0; n < 100; n++) {
+			for(int n = 0; n < 1000; n++) {
 				byte[] data = ("sample text" + n).getBytes();
 				System.out.println("data length " + data.length);
 				MessageDigest md = null;
@@ -29,7 +29,7 @@ public class DataGenerator {
 		        md = MessageDigest.getInstance("SHA-1");
 		        hash = md.digest(data);	        
 		        System.out.println("hash " + new String(hash));	        
-		        dataToSend[0] = new Integer(2).byteValue();
+		        dataToSend[0] = new Integer(1).byteValue();
 		        
 		        int index = 1;
 		        

@@ -97,21 +97,28 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		byte[] hash = task.getHash().getBytes();
 		
 		int value = 0;
-		int numBytes = Constants.BUCKET_HASH_NUM_BYTES;
+		int numBits = Constants.BUCKET_HASH_NUM_BITS;
 		
-		if (numBytes > 4) {
-			throw new ArchiveException("The number of bytes exceeds 4!");
+		if (numBits > Integer.SIZE) {
+			throw new ArchiveException("The number of bits exceeds 32!");
 		}
+		
+		int mask = (1 << numBits) - 1; // creates an int value with 'numBits' ones in binary. Acts as the bit mask.
+		int bucketValue = 0;
 		
 		// Getting the integer corresponding to the first 'numBytes' of the hash.
-		for(int i = 0; i < numBytes; i++) {
+		for(int i = 0; i < Integer.SIZE; i += 8) {
+			if(i >= numBits) {
+				bucketValue = value & mask;
+				break;
+			}
 			value = (value << 8) | hash[i];
 		}
-		System.out.println("Bucket hash value: " + value);
+		System.out.println("Bucket hash value: " + bucketValue);
 		
-		int modValue = (value < 0) ? (numServers - (Math.abs(value) % numServers) ) % numServers : (value % numServers);
+		int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
 		System.out.println("Routing to Server " + modValue);
-		serverMap.get(modValue).assignTask(new TaskPair(value, task));		
+		serverMap.get(modValue).assignTask(new TaskPair(bucketValue, task));		
 	}
 	
 	/* (non-Javadoc)

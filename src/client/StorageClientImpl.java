@@ -179,6 +179,9 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		/** The put_ avg time taken. */
 		private List<Long> put_AvgTimeTaken = new ArrayList<>();
 		
+		private List<Long> get_AvgTimeTaken = new ArrayList<>();
+		
+		
 		/* (non-Javadoc)
 		 * @see java.lang.Thread#run()
 		 */
@@ -208,8 +211,12 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 * @param status the status
 		 */
 		private void processGetStatus(GetStatus status) {
-			long currentTime = System.currentTimeMillis();
-			System.out.println("Get: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
+			long currentTime = System.currentTimeMillis();			
+			get_AvgTimeTaken.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			Collections.sort(get_AvgTimeTaken);
+			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
+			System.out.println("Avg time: " + get_AvgTimeTaken);
+			System.out.println("Size: " + get_AvgTimeTaken.size());
 		}
 		
 		/**
@@ -222,7 +229,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 			put_AvgTimeTaken.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
 			Collections.sort(put_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
-			// System.out.println("Avg time: " + put_AvgTimeTaken);
+			System.out.println("Avg time: " + put_AvgTimeTaken);
 			System.out.println("Size: " + put_AvgTimeTaken.size());
 		}
 	}

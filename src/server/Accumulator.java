@@ -47,7 +47,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = 4;//Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -193,6 +193,14 @@ public class Accumulator {
 		if (queueSize > Constants.BUFFER_SIZE) {			
 			addToScheduleQueue(bucketId);
 		}
+		else {
+			/** When the bucket doesn't have enough requests buffered, mark the time.
+			 * When it stays without being scheduled for a specified amount of time, schedule it forcefully.
+			 */
+			// System.out.println("Added " + bucketId + " to timer map.");
+			timerMap.put(bucketId, System.currentTimeMillis());
+		}
+		
 		getMap.put(bucketId, tasks);
 	}
 	
@@ -214,6 +222,7 @@ public class Accumulator {
 	
 	/**
 	 * The Comparator that defines the ordering (priority) of the elements in the priority queue.
+	 * It is a function of both time (time that is spent waiting before being scheduled) and number of put and get requests.
 	 */
 	class ScheduleComparator implements Comparator<Integer> {		
 		
@@ -227,8 +236,15 @@ public class Accumulator {
 			
 			Queue<Task> putQueue2 = putMap.get(i2);
 			Queue<Task> getQueue2 = getMap.get(i2);
+			Long time1 = timerMap.get(i1);
+			Long time2 = timerMap.get(i2);
+			
+			long currentTime = System.currentTimeMillis();
+			
+			long term1 = (putQueue1 != null ? putQueue1.size() : 0) + (getQueue1 != null ? getQueue1.size() : 0) + (time1 != null ? (currentTime - time1) : 0);
+			long term2 = (putQueue2 != null ? putQueue2.size() : 0) + (getQueue2 != null ? getQueue2.size() : 0) + (time2 != null ? (currentTime - time2) : 0);
 						
-			return ((putQueue1 != null ? putQueue1.size() : 0) + (getQueue1 != null ? getQueue1.size() : 0)) - ((putQueue2 != null ? putQueue2.size() : 0) + (getQueue2 != null ? getQueue2.size() : 0));			
+			return (term1 - term2) > 0 ? 1 : (term1 - term2) < 0 ? -1 : 0;			
 		}
 	}
 	

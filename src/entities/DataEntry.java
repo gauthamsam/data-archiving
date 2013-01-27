@@ -63,7 +63,7 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 	 */
 	@Override
 	public int compareTo(DataEntry o) {
-		return (offset > o.offset) ? 1 : (offset == o.offset) ? 0 : -1;
+		return (offset > o.offset) ? 1 : ((offset == o.offset) ? 0 : -1);
 	}
 
 	/**
@@ -82,6 +82,11 @@ public class DataEntry implements Comparable<DataEntry>, Serializable {
 	 */
 	public void setHash(String hash) {
 		this.hash = hash;
+	}
+	
+	@Override
+	public String toString() {
+		return String.valueOf(this.offset);
 	}
 
 }

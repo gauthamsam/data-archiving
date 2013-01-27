@@ -74,11 +74,6 @@ public class StorageManager {
 	 * @param putQueue the put queue
 	 */
 	public void processData(int bucketId, Queue<Task> getQueue, Queue<Task> putQueue) {
-		if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
-			// throw new IllegalArgumentException("Invalid task queues.");
-			return;
-		}
-		
 		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
 		
 		/** The lockObject acts as the lock for the following critical section. 
@@ -88,6 +83,10 @@ public class StorageManager {
 		Object lockObject = getLock(bucketId);
 		
 		synchronized (lockObject) {
+			if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
+				// throw new IllegalArgumentException("Invalid task queues.");
+				return;
+			}
 			Bucket bucket = readBucket(bucketId);
 			//System.out.println("Bucket: " + bucket);
 			
@@ -141,7 +140,7 @@ public class StorageManager {
 		DataEntry dataEntry = null;
 		String hash = null;
 		List<Status> statusList = new ArrayList<>();
-		System.out.println("Reading " + tasks.size() + " tasks at a time!");
+		System.out.println("Reading " + tasks.size() + " task(s) at a time!");
 		
 		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
 			Task task = iter.next();
@@ -161,6 +160,7 @@ public class StorageManager {
 				statusList.add(status);
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
 				System.out.println("There is no data associated with the hash " + task.getHash());
+				continue;
 			}
 			
 			dataEntry.setHash(hash);
@@ -169,9 +169,15 @@ public class StorageManager {
 			iter.remove();			
 		}
 		
+		System.out.println("Before: " + dataEntryList);
 		// Sort the list based on the disk offsets to do sequential reads. 
 		Collections.sort(dataEntryList);
-		statusList.addAll(readDataFromDisk(bucket, dataEntryList));
+		System.out.println("After: " + dataEntryList);
+		List<Status> readList = readDataFromDisk(bucket, dataEntryList);
+		
+		if (readList != null) {
+			statusList.addAll(readList);
+		}
 		
 		processResponse(statusList);
 	}
@@ -191,20 +197,11 @@ public class StorageManager {
 		List<Status> statusList = new ArrayList<>();		
 		String hash = null;
 		
-		System.out.println("Writing " + tasks.size() + " tasks at a time!");
+		System.out.println("Writing " + tasks.size() + " task(s) at a time!");
 		
 		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
 			Task task = iter.next();
-			hash = task.getHash();
-			if(hashSet.contains(hash)) {
-				byte[] temp = hash.getBytes();
-				int value = 0;
-				for(int i = 0; i < 4; i++) {
-					value = (value << 8) | temp[i];
-				}
-				System.out.println("DUPLICATE!");
-				System.out.println("Bucket hash value: " + value);				
-			}
+			hash = task.getHash();			
 			hashSet.add(hash);
 			if (! index.containsKey(hash)) {
 				dataToWrite.put(hash, task.getData());
@@ -332,6 +329,13 @@ public class StorageManager {
 		System.out.println("Reading data from disk for bucket " + bucket.getId());
 		OutputStream os = null;
 		try {
+			File file = new File(filePath);
+			if (! file.exists()) {
+				logger.error("There is no file for bucket " + bucket.getId());
+				System.out.println("There is no file for bucket " + bucket.getId());
+				return null;
+			}
+			
 			raf = new RandomAccessFile(filePath, "r");
 			os = new FileOutputStream(Constants.DATA_DIR + File.separator + "output.txt", true);
 
@@ -388,7 +392,7 @@ public class StorageManager {
 		
 		try {
 			File f = new File(filePath.substring(0, filePath.lastIndexOf("/")));
-			// If this is the first write, create the file first.
+			// If this is the first write, create the dir first.
 			if(! f.exists()) {
 				f.mkdirs();
 			}
