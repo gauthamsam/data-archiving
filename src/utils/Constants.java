@@ -21,7 +21,7 @@ public class Constants {
 	public static final String DATASTORE_FILE_EXTENSION = ".data";
 	
 	/** The Constant BUCKET_HASH_NUM_BYTES. */
-	public static final int BUCKET_HASH_NUM_BITS = 4;
+	public static final int BUCKET_HASH_NUM_BITS = 8;
 
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
 	public static final int BUFFER_SIZE = 3;

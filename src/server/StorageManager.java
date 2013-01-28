@@ -15,12 +15,10 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,7 +29,9 @@ import api.ServerToRouter;
 import entities.Bucket;
 import entities.DataEntry;
 import entities.GetStatus;
+import entities.GetTask;
 import entities.PutStatus;
+import entities.PutTask;
 import entities.Status;
 import entities.Task;
 import exceptions.ArchiveException;
@@ -50,9 +50,7 @@ public class StorageManager {
 	/** The hashmap to synchronize access to a bucket. */
 	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
 	
-	private AtomicInteger requests = new AtomicInteger();
-	
-	private Set<String> hashSet = new HashSet<>();
+	private AtomicInteger requests = new AtomicInteger();	
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -73,7 +71,7 @@ public class StorageManager {
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public void processData(int bucketId, Queue<Task> getQueue, Queue<Task> putQueue) {
+	public void processData(int bucketId, Queue<GetTask> getQueue, Queue<PutTask> putQueue) {
 		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
 		
 		/** The lockObject acts as the lock for the following critical section. 
@@ -130,9 +128,9 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void readData(Bucket bucket, Queue<Task> tasks) {
+	private void readData(Bucket bucket, Queue<GetTask> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
-		/*
+		/**
 		 * Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
 		 */
@@ -142,14 +140,10 @@ public class StorageManager {
 		List<Status> statusList = new ArrayList<>();
 		System.out.println("Reading " + tasks.size() + " task(s) at a time!");
 		
-		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
+		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
 			Task task = iter.next();
 			hash = task.getHash();
-			if(hashSet.contains(hash)) {
-				System.out.println("DUPLICATE!!!");
-			}
 			
-			hashSet.add(hash);
 			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
@@ -159,20 +153,23 @@ public class StorageManager {
 				status.setHash(hash);
 				statusList.add(status);
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
-				System.out.println("There is no data associated with the hash " + task.getHash());
-				continue;
+				System.out.println("There is no data associated with the hash " + task.getHash());				
+			}
+			else {
+				dataEntry.setHash(hash);
+				dataEntryList.add(dataEntry);
 			}
 			
-			dataEntry.setHash(hash);
-			dataEntryList.add(dataEntry);
-			// remove the task after processing it in order to avoid situations where there will be duplicate task entries in the bucket queues because of multi-threading.
+			/**
+			 * Remove the task after processing it in order to avoid situations
+			 * where there will be duplicate task entries in the bucket queues because of multi-threading.
+			 */
 			iter.remove();			
-		}
+		}		
 		
-		System.out.println("Before: " + dataEntryList);
 		// Sort the list based on the disk offsets to do sequential reads. 
 		Collections.sort(dataEntryList);
-		System.out.println("After: " + dataEntryList);
+		
 		List<Status> readList = readDataFromDisk(bucket, dataEntryList);
 		
 		if (readList != null) {
@@ -188,25 +185,28 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void writeData(Bucket bucket, Queue<Task> tasks) {
+	private void writeData(Bucket bucket, Queue<PutTask> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
 
-		// Filter the data that is to be written to disk. i.e. Write only the
-		// blocks that are not already there.
+		/**
+		 * Filter the data that is to be written to disk. i.e. Write only the
+		 * blocks that are not already there.
+		 */
 		Map<String, byte[]> dataToWrite = new HashMap<>();
 		List<Status> statusList = new ArrayList<>();		
 		String hash = null;
 		
 		System.out.println("Writing " + tasks.size() + " task(s) at a time!");
 		
-		for (Iterator<Task> iter = tasks.iterator(); iter.hasNext();) {
+		for (Iterator<PutTask> iter = tasks.iterator(); iter.hasNext();) {
 			Task task = iter.next();
 			hash = task.getHash();			
-			hashSet.add(hash);
+			
 			if (! index.containsKey(hash)) {
-				dataToWrite.put(hash, task.getData());
-				/** Put a dummy entry in the index.
-				 *  So, when the task queue has two or more data blocks which are same, we will add only one copy to 'dataToWrite' map.
+				dataToWrite.put(hash, ((PutTask)task).getData());
+				/** 
+				 * Put a dummy entry in the index.
+				 * So, when the task queue has two or more data blocks which are same, we will add only one copy to 'dataToWrite' map.
 				 */
 				index.put(hash, null);
 			}
@@ -216,7 +216,10 @@ public class StorageManager {
 				status.setSuccess(true);
 				statusList.add(status);
 			}
-			// remove the task after processing it in order to avoid situations where there will be duplicate task entries in the bucket queues because of multi-threading.
+			/**
+			 * Remove the task after processing it in order to avoid situations
+			 * where there will be duplicate task entries in the bucket queues because of multi-threading.
+			 */
 			iter.remove();
 		}		
 		
@@ -241,13 +244,11 @@ public class StorageManager {
 		String bucketPath = Constants.BUCKET_DIR + File.separator + bucketId + Constants.BUCKET_FILE_EXTENSION;
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
-		try {
-			//System.out.println("bucket path " + bucketPath);
+		try {			
 			File file = new File(bucketPath.substring(0, bucketPath.lastIndexOf("/")));
 			
 			// Create the directory if it is not already there.			
-			if (! file.exists()) {
-				//System.out.println("Creating directory " + file.getAbsolutePath());
+			if (! file.exists()) {				
 				file.mkdirs();
 				return new Bucket(bucketId);
 			}
@@ -258,8 +259,7 @@ public class StorageManager {
 			}
 			
 			inputStream = new ObjectInputStream(new FileInputStream(bucketPath));
-			bucket = (Bucket) inputStream.readObject();
-			//System.out.println("Bucket deserialized from file.");			
+			bucket = (Bucket) inputStream.readObject();						
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -384,7 +384,6 @@ public class StorageManager {
 	 */
 	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
 		OutputStream os = null;
-		//System.out.println("Writing data to disk for bucket " + bucket.getId());
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		

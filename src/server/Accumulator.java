@@ -15,7 +15,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import utils.Constants;
-import entities.Task;
+import entities.GetTask;
+import entities.PutTask;
 
 /**
  * The Class Accumulator.
@@ -23,10 +24,10 @@ import entities.Task;
 public class Accumulator {
 
 	/** The map that would contain all the 'get' tasks associated with a bucket. */
-	private Map<Integer, Queue<Task>> putMap;
+	private Map<Integer, Queue<PutTask>> putMap;
 	
 	/** The map that would contain all the 'put' tasks associated with a bucket. */
-	private Map<Integer, Queue<Task>> getMap;	
+	private Map<Integer, Queue<GetTask>> getMap;	
 	
 	/** The scheduler queue contains all the buckets that are ready to be scheduled. */
 	private BlockingQueue<Integer> scheduleQueue;	
@@ -59,8 +60,8 @@ public class Accumulator {
 	 * Instantiates a new accumulator.
 	 */
 	private Accumulator() {		
-		this.putMap = new ConcurrentHashMap<Integer, Queue<Task>>();
-		this.getMap = new ConcurrentHashMap<Integer, Queue<Task>>();
+		this.putMap = new ConcurrentHashMap<Integer, Queue<PutTask>>();
+		this.getMap = new ConcurrentHashMap<Integer, Queue<GetTask>>();
 		this.scheduleQueue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());
 		this.timerMap = new ConcurrentHashMap<>();
 		new ScheduledTimer().execute();
@@ -71,7 +72,7 @@ public class Accumulator {
 	 *
 	 * @return the put map
 	 */
-	public Map<Integer, Queue<Task>> getPutMap() {
+	public Map<Integer, Queue<PutTask>> getPutMap() {
 		return putMap;
 	}
 
@@ -80,7 +81,7 @@ public class Accumulator {
 	 *
 	 * @param putMap the put map
 	 */
-	public void setPutMap(Map<Integer, Queue<Task>> putMap) {
+	public void setPutMap(Map<Integer, Queue<PutTask>> putMap) {
 		this.putMap = putMap;
 	}
 
@@ -89,7 +90,7 @@ public class Accumulator {
 	 *
 	 * @return the gets the map
 	 */
-	public Map<Integer, Queue<Task>> getGetMap() {
+	public Map<Integer, Queue<GetTask>> getGetMap() {
 		return getMap;
 	}
 
@@ -98,7 +99,7 @@ public class Accumulator {
 	 *
 	 * @param getMap the get map
 	 */
-	public void setGetMap(Map<Integer, Queue<Task>> getMap) {
+	public void setGetMap(Map<Integer, Queue<GetTask>> getMap) {
 		this.getMap = getMap;
 	}
 
@@ -146,9 +147,9 @@ public class Accumulator {
 	 * @param bucketId the bucketId
 	 * @param task the task
 	 */
-	public void addToPutQueue(int bucketId, Task task) {
+	public void addToPutQueue(int bucketId, PutTask task) {
 		// Check if the putMap already has a task queue for this bucket.
-		Queue<Task> tasks = putMap.get(bucketId);
+		Queue<PutTask> tasks = putMap.get(bucketId);
 		if (tasks == null) {
 			tasks = new LinkedBlockingQueue<>();
 		}
@@ -156,7 +157,7 @@ public class Accumulator {
 		tasks.add(task);
 		
 		// Check if the total number of tasks has exceeded the threshold.
-		Queue<Task> getQueue = getMap.get(bucketId);
+		Queue<GetTask> getQueue = getMap.get(bucketId);
 		int queueSize = ((getQueue != null) ? getQueue.size() : 0 ) + tasks.size();
 		if (queueSize > Constants.BUFFER_SIZE) {
 			addToScheduleQueue(bucketId);			
@@ -178,9 +179,9 @@ public class Accumulator {
 	 * @param bucketId the bucketId
 	 * @param task the task
 	 */
-	public void addToGetQueue(int bucketId, Task task) {
+	public void addToGetQueue(int bucketId, GetTask task) {
 		// Check if the getMap already has a task queue for this bucket.		
-		Queue<Task> tasks = getMap.get(bucketId);		
+		Queue<GetTask> tasks = getMap.get(bucketId);		
 		if (tasks == null) {
 			tasks = new LinkedBlockingQueue<>();
 		}
@@ -188,7 +189,7 @@ public class Accumulator {
 		tasks.add(task);
 		
 		// Check if the total number of tasks has exceeded the threshold.
-		Queue<Task> putQueue = putMap.get(bucketId);
+		Queue<PutTask> putQueue = putMap.get(bucketId);
 		int queueSize = ((putQueue != null) ? putQueue.size() : 0 ) + tasks.size();
 		if (queueSize > Constants.BUFFER_SIZE) {			
 			addToScheduleQueue(bucketId);
@@ -231,16 +232,16 @@ public class Accumulator {
 		 */
 		@Override
 		public synchronized int compare(Integer i1, Integer i2) {			
-			Queue<Task> putQueue1 = putMap.get(i1);
-			Queue<Task> getQueue1 = getMap.get(i1);
+			Queue<PutTask> putQueue1 = putMap.get(i1);
+			Queue<GetTask> getQueue1 = getMap.get(i1);
 			
-			Queue<Task> putQueue2 = putMap.get(i2);
-			Queue<Task> getQueue2 = getMap.get(i2);
+			Queue<PutTask> putQueue2 = putMap.get(i2);
+			Queue<GetTask> getQueue2 = getMap.get(i2);
 			Long time1 = timerMap.get(i1);
 			Long time2 = timerMap.get(i2);
 			
 			long currentTime = System.currentTimeMillis();
-			
+						
 			long term1 = (putQueue1 != null ? putQueue1.size() : 0) + (getQueue1 != null ? getQueue1.size() : 0) + (time1 != null ? (currentTime - time1) : 0);
 			long term2 = (putQueue2 != null ? putQueue2.size() : 0) + (getQueue2 != null ? getQueue2.size() : 0) + (time2 != null ? (currentTime - time2) : 0);
 						
@@ -250,7 +251,7 @@ public class Accumulator {
 	
 	/**
 	 * Class to execute tasks at scheduled time periods.
-	 * If a bucket does not contains enough get/put requests to perform reading/writing, they are not scheduled. 
+	 * If a bucket does not contain enough get/put requests to perform reading/writing, they are not scheduled. 
 	 * This acts as a timer to check if there are any such tasks which are waiting in the queue for a specified amount of time.
 	 * If so, it schedules those tasks.
 	 */

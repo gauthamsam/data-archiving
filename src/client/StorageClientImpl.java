@@ -9,8 +9,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,12 +17,13 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import utils.Constants;
 import api.Router;
 import api.RouterToClient;
 import api.StorageClient;
 import entities.GetStatus;
+import entities.GetTask;
 import entities.PutStatus;
+import entities.PutTask;
 import entities.Status;
 import entities.Task;
 
@@ -100,31 +99,8 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		// The RMI client requests a reference to a named remote object. The reference (the remote object's stub instance) is what the client will use to make remote method calls to the remote object.
 		StorageClientImpl client = StorageClientImpl.getInstance();
 		client.router = (Router) Naming.lookup(routerURL);
-		client.router.setClient(client);
-
-		String data = "sample text";
-		MessageDigest md = null;
-		byte[] hash = null;
-		List<byte[]> hashList = new ArrayList<>();
-		
-		for (int i = 0; i < 100; i++) {
-			data = "sample text " + i;
-		    try {
-		        md = MessageDigest.getInstance("SHA-1");
-		        hash = md.digest(data.getBytes());
-		    }
-		    catch(NoSuchAlgorithmException e) {
-		        e.printStackTrace();
-		    }
-			// client.put(hash, data.getBytes());
-			hashList.add(hash);
-		}		
-		
-		
-//		Thread.sleep(3000);
-//		for(byte[] hash1 : hashList) {
-//			router.get(hash1);
-//		}
+		// Set the client in the router for doing a callback.
+		client.router.setClient(client);		
 	}
 	
 	/* (non-Javadoc)
@@ -133,10 +109,9 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	@Override
 	public void put(byte[] hash, byte[] data) {
 		String strHash = new String(hash);
-		Task task = new Task();
+		PutTask task = new PutTask();
 		task.setData(data);
-		task.setHash(strHash);
-		task.setType(Constants.TASK_TYPE_PUT);
+		task.setHash(strHash);		
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);
@@ -148,9 +123,8 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	@Override
 	public void get(byte[] hash) {
 		String strHash = new String(hash);
-		Task task = new Task();
-		task.setHash(strHash);
-		task.setType(Constants.TASK_TYPE_GET);
+		GetTask task = new GetTask();
+		task.setHash(strHash);		
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);

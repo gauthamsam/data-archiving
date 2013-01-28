@@ -7,7 +7,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
-import entities.Task;
+import entities.GetTask;
+import entities.PutTask;
 
 
 /**
@@ -29,14 +30,15 @@ public class Scheduler extends Thread {
 	/* (non-Javadoc)
 	 * @see java.lang.Thread#run()
 	 */
-	public void run() {		
-		Map<Integer, Queue<Task>> putMap = accumulator.getPutMap();
-		Map<Integer, Queue<Task>> getMap = accumulator.getGetMap();
+	public void run() {
+		System.out.println("Thread " + threadId + " running!");
+		Map<Integer, Queue<PutTask>> putMap = accumulator.getPutMap();
+		Map<Integer, Queue<GetTask>> getMap = accumulator.getGetMap();
 		BlockingQueue<Integer> priorityQueue = accumulator.getScheduleQueue();
 		Map<Integer, Long> timerMap = accumulator.getTimerMap();
 		
-		Queue<Task> putQueue = null;
-		Queue<Task> getQueue = null;
+		Queue<PutTask> putQueue = null;
+		Queue<GetTask> getQueue = null;
 		int bucket = 0;
 		
 		while (true) {

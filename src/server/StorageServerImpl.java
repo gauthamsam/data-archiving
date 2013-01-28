@@ -7,12 +7,13 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-import entities.Task;
-
-import utils.Constants;
 import api.Router;
 import api.ServerToRouter;
 import api.StorageServer;
+import entities.GetTask;
+import entities.PutTask;
+import entities.Task;
+import exceptions.ArchiveException;
 
 /**
  * The Class StorageServerImpl.
@@ -51,16 +52,19 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 	 * @see api.StorageServer#assignTask(int, api.Task)
 	 */
 	@Override
-	public void assignTask(int bucket_hash, Task task) {
+	public void assignTask(int bucketId, Task task) {
 		
 		Accumulator accumulator = Accumulator.getInstance();
 		// if put task
-		if (task.getType() == Constants.TASK_TYPE_PUT) {
-			accumulator.addToPutQueue(bucket_hash, task);
+		if (task instanceof PutTask) {
+			accumulator.addToPutQueue(bucketId, (PutTask) task);
 		}		
 		// if get task
-		else if (task.getType() == Constants.TASK_TYPE_GET) {
-			accumulator.addToGetQueue(bucket_hash, task);
+		else if (task instanceof GetTask) {
+			accumulator.addToGetQueue(bucketId, (GetTask) task);
+		}
+		else {
+			throw new ArchiveException("Invalid Task");
 		}
 	}
 	

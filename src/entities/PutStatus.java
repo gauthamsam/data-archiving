@@ -1,16 +1,15 @@
+/*
+ * @author Gautham Narayanasamy
+ */
 package entities;
 
 
+/**
+ * The Class PutStatus.
+ */
 public class PutStatus extends Status {
-	
-	private String hash;
 
-	public String getHash() {
-		return hash;
-	}
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = -9170768278553673995L;
 
-	public void setHash(String hash) {
-		this.hash = hash;
-	}
-	
 }

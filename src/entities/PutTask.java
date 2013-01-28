@@ -4,18 +4,16 @@
 package entities;
 
 /**
- * The Class GetStatus.
+ * The Class PutTask.
  */
-public class GetStatus extends Status {
-
+public class PutTask extends Task{
 	
 	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = 1456978708990373366L;
+	private static final long serialVersionUID = 1585193027053594109L;
 	
 	/** The data. */
 	private byte[] data;
 
-	
 	/**
 	 * Gets the data.
 	 *
@@ -33,6 +31,5 @@ public class GetStatus extends Status {
 	public void setData(byte[] data) {
 		this.data = data;
 	}
-	
-	
+
 }
