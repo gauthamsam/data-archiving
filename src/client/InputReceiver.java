@@ -3,8 +3,10 @@
  */
 package client;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -44,50 +46,79 @@ public class InputReceiver extends Thread{
 			while(true) {
 				connection = service.accept();
 				
-				ObjectInputStream ois = new ObjectInputStream(connection.getInputStream());
-				
-//				BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-//				
-//	            BufferedInputStream isr = new BufferedInputStream(connection.getInputStream());
+				InputStream in = connection.getInputStream();
 	            
-	            byte[] b = new byte[1024 * 1024];
+	            DataInputStream dis = new DataInputStream(in);
 	            
 	            int operation = 0;
 	            byte[] hash = new byte[20];
+	            int dataLength = 0;	            
+	            int offset = 0;	            
+	            int bytesToRead = 0;
+	            byte[] buffer = null;
+	            byte[] data = null;
 	            
-	            int offset = 0;
-	            
-	            int num =0;
-	            
-	            while((b = (byte[]) ois.readObject()) != null) {
-	            	//b = str.getBytes("UTF-8");
-	            	num++;
-	            	offset = 0;
-	            	System.out.println("bytes read " + new String(b) + " length: " + b.length);	            	
+	            while(true) {
+	            	try {
+	            		bytesToRead = dis.readInt();
+	            		bytesToRead = littleToBigEndian(bytesToRead);
+	            		System.out.println("Total bytes " + bytesToRead);
+	            		buffer = new byte[bytesToRead];	            	
+	            		dis.readFully(buffer);
+	            	}
+	            	catch(EOFException e) {
+	            		// break from the inner while loop. But the outer while loop will continue waiting for a connection.
+	            		System.out.println("End of stream!");
+	            		break;
+	            	}
 	            	
-	            	operation |= b[offset++];
+	            	/*for(int i = 0; (i < 4) && ((s = in.read(buffer)) != -1); i++) {
+		              baos.write(buffer, 0, s);		              
+		            }*/
+	            	
+	            	/*if(s == -1) {
+	            		System.out.println("Breaking!");
+	            		break;	            		
+	            	}*/
+	            	
+	            	//byte b[] = baos.toByteArray();
+	            	offset = 0;
+	            	operation = 0;
+	            	dataLength = 0;
+	            	
+	            	// System.out.println(" length: " + b.length);
+	            	
+	            	for(int i = 0; i < 2; i++) {
+	            		operation = (operation << 8) | buffer[offset++];
+	            	}
+	            	
+	            	operation = littleToBigEndian(operation);
+	            	
 	            	System.out.println("Operation " + operation);
 	            	
 	            	for(int i = 0; i < 20; i++) {
-	            		hash[i] = b[offset++];
+	            		hash[i] = buffer[offset++];
 	            	}
 	            	
 	            	System.out.println("Hash " + new String(hash));
-	            	if (operation == 1) { // get operation
-	            		client.get(hash);
-	            	}
 	            	
-	            	else if (operation == 2) { // put operation            		
-	            		byte[] data = new byte[b.length - offset];
+	            	dataLength = bytesToRead - offset;
+	            	System.out.println("dataLength " + dataLength);
+	            	
+	            	if (operation == 0) { // put operation            		
+	            		data = new byte[dataLength];
 	            		for(int i = 0; i < data.length; i++) {
-	            			data[i] = b[offset++];
+	            			data[i] = buffer[offset++];
 	            		}
 	            		client.put(hash, data);	            		            		
 	            	}
-	            	//Thread.sleep(1000);
+	            	
+	            	else if (operation == 1) { // get operation
+	            		client.get(hash);
+	            	}
+	            	
+	            	
 	            }
-	            
-	            System.out.println("NUM " + num);
 			}
             
         }
@@ -103,6 +134,16 @@ public class InputReceiver extends Thread{
 			}
         }
 
+	}
+	
+	/**
+	 * Converts the given integer from little endian to big endian format.
+	 *
+	 * @param i the integer
+	 * @return the converted integer.
+	 */
+	private int littleToBigEndian(int i) {
+	    return ((i & 0xff) << 24) + ((i & 0xff00) <<8 ) + ((i & 0xff0000) >> 8) + ((i >> 24) & 0xff);
 	}
 	
 }

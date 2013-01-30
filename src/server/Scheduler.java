@@ -31,7 +31,7 @@ public class Scheduler extends Thread {
 	 * @see java.lang.Thread#run()
 	 */
 	public void run() {
-		System.out.println("Thread " + threadId + " running!");
+		System.out.println("Starting scheduler thread " + threadId);
 		Map<Integer, Queue<PutTask>> putMap = accumulator.getPutMap();
 		Map<Integer, Queue<GetTask>> getMap = accumulator.getGetMap();
 		BlockingQueue<Integer> priorityQueue = accumulator.getScheduleQueue();

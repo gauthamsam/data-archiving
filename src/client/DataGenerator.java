@@ -1,8 +1,9 @@
 package client;
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -14,46 +15,62 @@ public class DataGenerator {
 		try {
 			s = new Socket("localhost", 12346);
 			
-			ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+			//ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 			// PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
-			// OutputStream os = new BufferedOutputStream(s.getOutputStream());
+			OutputStream os = s.getOutputStream();
 			
-			for(int n = 0; n < 1000; n++) {
+			for(int n = 0; n < 10; n++) {
 				byte[] data = ("sample text" + n).getBytes();
 				System.out.println("data length " + data.length);
 				MessageDigest md = null;
 				byte[] hash = null;
 	
-		        byte[] dataToSend = new byte[21 + data.length];
-		        
 		        md = MessageDigest.getInstance("SHA-1");
 		        hash = md.digest(data);	        
 		        System.out.println("hash " + new String(hash));	        
-		        dataToSend[0] = new Integer(1).byteValue();
 		        
-		        int index = 1;
+		        byte[] i2b = ByteBuffer.allocate(4).putInt(0).array();
 		        
-		        for(int i = 0; i < hash.length; i++) {
-		        	dataToSend[index++] = hash[i];
-		        }
+		        byte[] dataLength = ByteBuffer.allocate(4).putInt(data.length).array();
 		        
-		        for(int i = 0; i < data.length; i++) {
-		        	dataToSend[index++] = data[i];
-		        }
+		        int length = i2b.length + hash.length + dataLength.length + data.length;
+		        os.write(length);
 		        
-		        System.out.println("dataToSend " + new String(dataToSend));
-		        System.out.println("length " + dataToSend.length);
-		        oos.writeObject(dataToSend);
-		        oos.flush();
+		        System.out.println("length of operation " + i2b.length);
+		        os.write(i2b);
+		        
+		        os.write(hash);
+		        
+		        
+		        System.out.println("length of hash " + hash.length);
+		        
+		        
+		        os.write(dataLength);
+		        
+		        
+		        
+		        System.out.println("length of dataLength " + dataLength.length);
+		        
+		        os.write(data);
+		        
+		        
+		        
+		        System.out.println("length of data " + data.length);
+		        
+		        //System.out.println("dataToSend " + new String(dataToSend));
+		        System.out.println("length " + length);
+		        // os.flush();
+		        //oos.writeObject(dataToSend);
+		        //oos.flush();
 		        // writer.println(dataToSend);
 		        // writer.flush();
-		        //os.write(dataToSend);
+		        // os.write(dataToSend);
 		        //os.write('\n');
 		        //os.flush();
 		        //Thread.sleep(1000);
 			}
-			oos.writeObject(null);
-			oos.flush();
+			//oos.writeObject(null);
+			//oos.flush();
 	        
 			
 		} catch (IOException e) {
@@ -70,5 +87,6 @@ public class DataGenerator {
 			}
 		}
 		
-	}
+	}	
+	
 }

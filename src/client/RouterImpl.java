@@ -146,6 +146,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		}
 		
 		public void run() {
+			System.out.println("Starting proxy thread " + id);
 			while(true) {
 				try {
 					TaskPair taskPair = taskQueue.take();
