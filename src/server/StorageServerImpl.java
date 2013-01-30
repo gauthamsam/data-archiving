@@ -6,27 +6,42 @@ package server;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import api.Router;
 import api.ServerToRouter;
 import api.StorageServer;
 import entities.GetTask;
 import entities.PutTask;
+import entities.Status;
 import entities.Task;
 import exceptions.ArchiveException;
 
 /**
- * The Class StorageServerImpl.
+ * The main class that represents the Storage Server.
  */
 public class StorageServerImpl extends UnicastRemoteObject implements StorageServer {
 
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 3592782126605486179L;
 	
+	/** The server. */
 	private static StorageServerImpl server;
 	
+	/** The router. */
 	private ServerToRouter router;
 	
+	/** The status queue. */
+	private BlockingQueue<List<Status>> statusQueue;
+	
+	/**
+	 * Gets the single instance of StorageServerImpl.
+	 *
+	 * @return single instance of StorageServerImpl
+	 * @throws RemoteException the remote exception
+	 */
 	public static synchronized StorageServerImpl getInstance() throws RemoteException {
 		if (server == null) {
 			server = new StorageServerImpl();
@@ -34,15 +49,33 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 		return server;
 	}
 	
+	/**
+	 * Instantiates a new storage server impl.
+	 *
+	 * @throws RemoteException the remote exception
+	 */
 	protected StorageServerImpl() throws RemoteException {
-		super();		
+		super();
+		statusQueue = new LinkedBlockingQueue<>();
+		// Start the dispatcher thread.
+		new ResponseDispatcher().start();
 	}
 	
 
+	/**
+	 * Gets the router.
+	 *
+	 * @return the router
+	 */
 	public ServerToRouter getRouter() {
 		return router;
 	}
 
+	/**
+	 * Sets the router.
+	 *
+	 * @param router the new router
+	 */
 	public void setRouter(ServerToRouter router) {
 		this.router = router;
 	}
@@ -65,6 +98,38 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 		}
 		else {
 			throw new ArchiveException("Invalid Task");
+		}
+	}
+	
+	/**
+	 * Process response.
+	 *
+	 * @param statusList the status list
+	 */
+	public void processResponse(List<Status> statusList) {
+		statusQueue.add(statusList);
+	}
+	
+	
+	/**
+	 * The thread that is responsible for dispatching the response to the router.
+	 */
+	class ResponseDispatcher extends Thread {
+		
+		/* (non-Javadoc)
+		 * @see java.lang.Thread#run()
+		 */
+		public void run() {
+			while(true) {
+				try {
+					List<Status> status = statusQueue.take();
+					router.processResponse(status);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	

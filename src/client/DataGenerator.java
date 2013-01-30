@@ -15,8 +15,6 @@ public class DataGenerator {
 		try {
 			s = new Socket("localhost", 12346);
 			
-			//ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
-			// PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
 			OutputStream os = s.getOutputStream();
 			
 			for(int n = 0; n < 10; n++) {

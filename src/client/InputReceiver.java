@@ -59,6 +59,11 @@ public class InputReceiver extends Thread{
 	            byte[] data = null;
 	            
 	            while(true) {
+	            	// re-initialize all the values.
+	            	offset = 0;
+	            	operation = 0;
+	            	dataLength = 0;
+	            	
 	            	try {
 	            		bytesToRead = dis.readInt();
 	            		bytesToRead = littleToBigEndian(bytesToRead);
@@ -71,22 +76,6 @@ public class InputReceiver extends Thread{
 	            		System.out.println("End of stream!");
 	            		break;
 	            	}
-	            	
-	            	/*for(int i = 0; (i < 4) && ((s = in.read(buffer)) != -1); i++) {
-		              baos.write(buffer, 0, s);		              
-		            }*/
-	            	
-	            	/*if(s == -1) {
-	            		System.out.println("Breaking!");
-	            		break;	            		
-	            	}*/
-	            	
-	            	//byte b[] = baos.toByteArray();
-	            	offset = 0;
-	            	operation = 0;
-	            	dataLength = 0;
-	            	
-	            	// System.out.println(" length: " + b.length);
 	            	
 	            	for(int i = 0; i < 2; i++) {
 	            		operation = (operation << 8) | buffer[offset++];
@@ -116,8 +105,6 @@ public class InputReceiver extends Thread{
 	            	else if (operation == 1) { // get operation
 	            		client.get(hash);
 	            	}
-	            	
-	            	
 	            }
 			}
             

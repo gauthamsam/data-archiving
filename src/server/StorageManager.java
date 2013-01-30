@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 
 import utils.Constants;
-import api.ServerToRouter;
 import entities.Bucket;
 import entities.DataEntry;
 import entities.GetStatus;
@@ -450,9 +449,7 @@ public class StorageManager {
 	 */
 	private void processResponse(List<Status> statusList) {		
 		try {
-			ServerToRouter router = null;
-			router = StorageServerImpl.getInstance().getRouter();
-			router.processResponse(statusList);
+			StorageServerImpl.getInstance().processResponse(statusList);			
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}

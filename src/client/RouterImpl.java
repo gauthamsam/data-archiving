@@ -44,6 +44,9 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	/** The number of storage servers registered with the Router. */
 	private int numServers;
 	
+	/** The status queue. */
+	private BlockingQueue<List<Status>> statusQueue = new LinkedBlockingQueue<>();
+	
 	/**
 	 * Gets the single instance of RouterImpl.
 	 *
@@ -66,6 +69,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		super();
 		serverMap = new HashMap<>();
 		numServers = 0;
+		new ResponseRouter().start();
 	}
 
 	/* (non-Javadoc)
@@ -125,7 +129,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 * @see api.ServerToRouter#processResponse(entities.Status)
 	 */
 	public void processResponse(List<Status> status) throws RemoteException {
-		client.setStatus(status);
+		statusQueue.add(status);
 	}
 	
 	/**
@@ -134,17 +138,34 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 *
 	 */
 	class StorageServerProxy extends Thread {
+		
+		/** The task queue. */
 		private BlockingQueue<TaskPair> taskQueue;		
+		
+		/** The server. */
 		private StorageServer server;
+		
+		/** The id. */
 		private int id;
+		
+		/** The num requests. */
 		private int numRequests = 0;
 		
+		/**
+		 * Instantiates a new storage server proxy.
+		 *
+		 * @param id the id
+		 * @param server the server
+		 */
 		public StorageServerProxy(int id, StorageServer server) {
 			this.id = id;
 			this.server = server;
 			this.taskQueue = new LinkedBlockingQueue<>();
 		}
 		
+		/* (non-Javadoc)
+		 * @see java.lang.Thread#run()
+		 */
 		public void run() {
 			System.out.println("Starting proxy thread " + id);
 			while(true) {
@@ -160,12 +181,40 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 			}
 		}
 		
+		/**
+		 * Assign task.
+		 *
+		 * @param taskPair the task pair
+		 */
 		public void assignTask(TaskPair taskPair) {
 			taskQueue.add(taskPair);
 			numRequests ++;
 			System.out.println("Num requests routed: " + numRequests);
 		}
 		
+	}
+	
+	
+	/**
+	 * Thread that is responsible for routing the response to the client.
+	 */
+	class ResponseRouter extends Thread {		
+		
+		/* (non-Javadoc)
+		 * @see java.lang.Thread#run()
+		 */
+		public void run() {
+			while(true) {
+				try {
+					List<Status> status = statusQueue.take();
+					client.setStatus(status);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 	
 	/**
