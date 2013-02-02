@@ -27,49 +27,26 @@ public class DataGenerator {
 		        hash = md.digest(data);	        
 		        System.out.println("hash " + new String(hash));	        
 		        
-		        byte[] i2b = ByteBuffer.allocate(4).putInt(0).array();
+		        byte[] operation = ByteBuffer.allocate(4).putInt(0).array();
 		        
-		        byte[] dataLength = ByteBuffer.allocate(4).putInt(data.length).array();
-		        
-		        int length = i2b.length + hash.length + dataLength.length + data.length;
-		        os.write(length);
-		        
-		        System.out.println("length of operation " + i2b.length);
-		        os.write(i2b);
-		        
-		        os.write(hash);
-		        
-		        
-		        System.out.println("length of hash " + hash.length);
-		        
+		        int length = operation.length + hash.length + data.length;
+		        byte[] dataLength = ByteBuffer.allocate(4).putInt(length).array();
 		        
 		        os.write(dataLength);
 		        
+		        System.out.println("length of operation " + operation.length);
+		        os.write(operation);
 		        
+		        os.write(hash);
 		        
-		        System.out.println("length of dataLength " + dataLength.length);
+		        System.out.println("length of hash " + hash.length);
 		        
 		        os.write(data);
 		        
-		        
-		        
 		        System.out.println("length of data " + data.length);
 		        
-		        //System.out.println("dataToSend " + new String(dataToSend));
-		        System.out.println("length " + length);
-		        // os.flush();
-		        //oos.writeObject(dataToSend);
-		        //oos.flush();
-		        // writer.println(dataToSend);
-		        // writer.flush();
-		        // os.write(dataToSend);
-		        //os.write('\n');
-		        //os.flush();
-		        //Thread.sleep(1000);
+		        System.out.println("length " + length);		        
 			}
-			//oos.writeObject(null);
-			//oos.flush();
-	        
 			
 		} catch (IOException e) {
 			e.printStackTrace();

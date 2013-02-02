@@ -17,6 +17,7 @@ public interface Router extends Remote {
 	public static final String SERVICE_NAME = "Router";
 	
 	public void setClient(RouterToClient client) throws RemoteException;
+	
 	/**
 	 * Route request.
 	 *

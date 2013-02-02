@@ -101,7 +101,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		byte[] hash = task.getHash().getBytes();
 		
 		int value = 0;
-		int numBits = Constants.BUCKET_HASH_NUM_BITS;
+		int numBits = Constants.BUCKET_NUM_BITS;
 		
 		if (numBits > Integer.SIZE) {
 			throw new ArchiveException("The number of bits exceeds 32!");

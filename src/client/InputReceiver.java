@@ -12,6 +12,8 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import utils.Constants;
+
 import api.StorageClient;
 
 /**
@@ -75,6 +77,8 @@ public class InputReceiver extends Thread{
 	            	catch(EOFException e) {
 	            		// break from the inner while loop. But the outer while loop will continue waiting for a connection.
 	            		System.out.println("End of stream!");
+	            		// Get the stats.
+	            		client.calculateStats();
 	            		break;
 	            	}
 	            	
@@ -95,7 +99,7 @@ public class InputReceiver extends Thread{
 	            	
 	            	System.out.println("Hash " + new String(hash));
 	            	
-	            	if (operation == 0) { // put operation
+	            	if (operation == Constants.OPERATION_PUT) { 
 		            	dataLength = bytesToRead - offset;
 		            	System.out.println("dataLength " + dataLength);
 		            	
@@ -106,10 +110,10 @@ public class InputReceiver extends Thread{
 	            		client.put(hash, data);	            		            		
 	            	}
 	            	
-	            	else if (operation == 1) { // get operation
+	            	else if (operation == Constants.OPERATION_GET) { 
 	            		client.get(hash);
 	            	}
-	            }
+	            }				
 			}
             
         }

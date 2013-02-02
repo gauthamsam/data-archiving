@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
@@ -48,8 +47,6 @@ public class StorageManager {
 		
 	/** The hashmap to synchronize access to a bucket. */
 	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
-	
-	private AtomicInteger requests = new AtomicInteger();	
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -89,14 +86,12 @@ public class StorageManager {
 			
 			if(putQueue != null) {
 				// Do the write operations.
-				writeData(bucket, putQueue);
-				requests.addAndGet(putQueue.size());
+				writeData(bucket, putQueue);				
 			}
 			
 			if(getQueue != null) {
 				// Do the read operations.
-				readData(bucket, getQueue);
-				requests.addAndGet(getQueue.size());
+				readData(bucket, getQueue);				
 			}
 
 			// Make the bucket eligible for garbage collection.
@@ -325,8 +320,7 @@ public class StorageManager {
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
-		System.out.println("Reading data from disk for bucket " + bucket.getId());
-		OutputStream os = null;
+		System.out.println("Reading data from disk for bucket " + bucket.getId());		
 		try {
 			File file = new File(filePath);
 			if (! file.exists()) {
@@ -336,14 +330,11 @@ public class StorageManager {
 			}
 			
 			raf = new RandomAccessFile(filePath, "r");
-			os = new FileOutputStream(Constants.DATA_DIR + File.separator + "output.txt", true);
-
 			for (DataEntry dataEntry : dataEntries) {
 				byte[] data = new byte[dataEntry.getDataLength()];
 				// Seek to the data's offset and read the data.
 				raf.seek(dataEntry.getOffset());
-				raf.read(data, 0, data.length);
-				os.write(data);
+				raf.read(data, 0, data.length);				
 				
 				// Generate a Status for each read.
 				GetStatus status = new GetStatus();
@@ -360,10 +351,7 @@ public class StorageManager {
 			try {
 				if (raf != null) {
 					raf.close();
-				}
-				if (os != null) {
-					os.close();
-				}
+				}				
 			} catch (IOException e) {
 				logger.error(e);
 				throw new ArchiveException(e);

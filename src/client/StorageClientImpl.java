@@ -46,6 +46,13 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	
 	/** The client. */
 	private static StorageClientImpl client;
+		
+	/** The put time. */
+	private List<Long> putTime = Collections.synchronizedList(new ArrayList<Long>());
+	
+	/** The get time. */
+	private List<Long> getTime = Collections.synchronizedList(new ArrayList<Long>());
+	
 	
 	/**
 	 * Gets the single instance of StorageClientImpl.
@@ -148,13 +155,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	/**
 	 * The receiver thread will process the return status of the submitted tasks.
 	 */
-	class OutputReceiver extends Thread {
-		
-		/** The put_ avg time taken. */
-		private List<Long> put_AvgTimeTaken = new ArrayList<>();
-		
-		private List<Long> get_AvgTimeTaken = new ArrayList<>();
-		
+	class OutputReceiver extends Thread {		
 		
 		/* (non-Javadoc)
 		 * @see java.lang.Thread#run()
@@ -186,11 +187,11 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 */
 		private void processGetStatus(GetStatus status) {
 			long currentTime = System.currentTimeMillis();			
-			get_AvgTimeTaken.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
-			Collections.sort(get_AvgTimeTaken);
+			getTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			//Collections.sort(get_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
-			System.out.println("Max time: " + get_AvgTimeTaken.get(get_AvgTimeTaken.size() - 1));
-			System.out.println("Size: " + get_AvgTimeTaken.size());
+			//System.out.println("Max time: " + get_AvgTimeTaken.get(get_AvgTimeTaken.size() - 1));
+			//System.out.println("Size: " + get_AvgTimeTaken.size());
 		}
 		
 		/**
@@ -200,12 +201,56 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 */
 		private void processPutStatus(PutStatus status) {
 			long currentTime = System.currentTimeMillis();			
-			put_AvgTimeTaken.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
-			Collections.sort(put_AvgTimeTaken);
+			putTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			//Collections.sort(put_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
-			System.out.println("Max time: " + put_AvgTimeTaken.get(put_AvgTimeTaken.size() - 1));
-			System.out.println("Size: " + put_AvgTimeTaken.size());
+			//System.out.println("Max time: " + put_AvgTimeTaken.get(put_AvgTimeTaken.size() - 1));
+			//System.out.println("Size: " + put_AvgTimeTaken.size());
 		}
+		
+		
+	}
+
+
+	/* (non-Javadoc)
+	 * @see api.StorageClient#calculateStats()
+	 */
+	@Override
+	public void calculateStats() {
+		if(getTime.size() > 0) {
+			calculateGetStats();
+		}
+		
+		if(putTime.size() > 0) {
+			calculatePutStats();
+		}
+		
+	}
+	
+	/**
+	 * Calculate get stats.
+	 */
+	private void calculateGetStats() {
+		long sum = 0;
+		for(long i : getTime) {
+			sum += i;
+		}
+		System.out.println("Total get responses " + getTime.size());
+		System.out.println("Average get time: " + sum/getTime.size());
+		
+	}
+	
+	/**
+	 * Calculate put stats.
+	 */
+	private void calculatePutStats() {
+		long sum = 0;
+		for(long i : putTime) {
+			sum += i;
+		}
+		System.out.println("Total put responses " + putTime.size());
+		System.out.println("Average put time: " + sum/putTime.size());		
+		
 	}
 
 }

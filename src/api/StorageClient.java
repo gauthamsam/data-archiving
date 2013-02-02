@@ -1,6 +1,12 @@
+/*
+ * @author Gautham Narayanasamy
+ */
 package api;
 
 
+/**
+ * The Interface StorageClient.
+ */
 public interface StorageClient{
 	/**
 	 * Puts the hash and the data to be stored.
@@ -16,5 +22,10 @@ public interface StorageClient{
 	 * @param hash the hash
 	 */
 	public void get(byte[] hash);
+		
+	/**
+	 * Calculate stats.
+	 */
+	public void calculateStats();
 	
 }
