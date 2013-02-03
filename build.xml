@@ -1,4 +1,4 @@
-<project name="cs290b-hw3" default="dist" basedir=".">
+<project name="data-archiving" default="dist" basedir=".">
 	<!-- set global properties for this build -->
 	<property name="username" value="${username}" />
 	<property name="pw" value="${password}" />

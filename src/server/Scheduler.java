@@ -50,8 +50,9 @@ public class Scheduler extends Thread {
 				getQueue = getMap.remove(bucket);
 				putQueue = putMap.remove(bucket);
 				timerMap.remove(bucket);
-
-				StorageManager.getInstance().processData(bucket, getQueue, putQueue);				
+				long currentTime = System.currentTimeMillis();
+				
+				StorageManager.getInstance().processData(bucket, getQueue, putQueue, currentTime);				
 			}
 			catch(Exception e) {
 				System.out.println("Exception in Scheduler!");
@@ -61,5 +62,4 @@ public class Scheduler extends Thread {
 		}
 		
 	}
-
 }

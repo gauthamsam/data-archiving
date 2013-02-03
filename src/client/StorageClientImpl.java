@@ -187,7 +187,8 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 */
 		private void processGetStatus(GetStatus status) {
 			long currentTime = System.currentTimeMillis();			
-			getTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			// getTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			getTime.add(status.getEndTime() - status.getStartTime());
 			//Collections.sort(get_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
 			//System.out.println("Max time: " + get_AvgTimeTaken.get(get_AvgTimeTaken.size() - 1));
@@ -201,11 +202,12 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 */
 		private void processPutStatus(PutStatus status) {
 			long currentTime = System.currentTimeMillis();			
-			putTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
-			//Collections.sort(put_AvgTimeTaken);
+			// putTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
+			putTime.add(status.getEndTime() - status.getStartTime());
+			// Collections.sort(putTime);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
-			//System.out.println("Max time: " + put_AvgTimeTaken.get(put_AvgTimeTaken.size() - 1));
-			//System.out.println("Size: " + put_AvgTimeTaken.size());
+			//System.out.println("Max time: " + putTime.get(putTime.size() - 1));
+			// System.out.println("Size: " + putTime.size());
 		}
 		
 		

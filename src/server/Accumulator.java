@@ -195,7 +195,8 @@ public class Accumulator {
 			addToScheduleQueue(bucketId);
 		}
 		else {
-			/** When the bucket doesn't have enough requests buffered, mark the time.
+			/** 
+			 * When the bucket doesn't have enough requests buffered, mark the time.
 			 * When it stays without being scheduled for a specified amount of time, schedule it forcefully.
 			 */
 			// System.out.println("Added " + bucketId + " to timer map.");

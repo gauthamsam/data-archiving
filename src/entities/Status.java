@@ -18,6 +18,10 @@ public abstract class Status implements Serializable {
 		
 	/** The success. */
 	private boolean success;
+	
+	private long startTime;
+	
+	private long endTime;
 
 	
 	/**
@@ -54,6 +58,22 @@ public abstract class Status implements Serializable {
 	 */
 	public void setSuccess(boolean success) {
 		this.success = success;
+	}
+
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
+
+	public long getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(long endTime) {
+		this.endTime = endTime;
 	}
 
 }

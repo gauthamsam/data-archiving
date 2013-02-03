@@ -111,13 +111,14 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		int bucketValue = 0;
 		
 		// Getting the integer corresponding to the first 'numBytes' of the hash.
+		/*
 		for(int i = 0; i < Integer.SIZE; i += 8) {
 			if(i >= numBits) {
 				bucketValue = value & mask;
 				break;
 			}
 			value = (value << 8) | hash[i];
-		}
+		} */
 		System.out.println("Bucket hash value: " + bucketValue);
 		
 		int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);

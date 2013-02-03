@@ -67,7 +67,7 @@ public class StorageManager {
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public void processData(int bucketId, Queue<GetTask> getQueue, Queue<PutTask> putQueue) {
+	public void processData(int bucketId, Queue<GetTask> getQueue, Queue<PutTask> putQueue, long currentTime) {
 		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
 		
 		/** The lockObject acts as the lock for the following critical section. 
@@ -85,13 +85,14 @@ public class StorageManager {
 			//System.out.println("Bucket: " + bucket);
 			
 			if(putQueue != null) {
+				
 				// Do the write operations.
-				writeData(bucket, putQueue);				
+				writeData(bucket, putQueue, currentTime);				
 			}
 			
 			if(getQueue != null) {
 				// Do the read operations.
-				readData(bucket, getQueue);				
+				readData(bucket, getQueue, currentTime);				
 			}
 
 			// Make the bucket eligible for garbage collection.
@@ -122,7 +123,7 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void readData(Bucket bucket, Queue<GetTask> tasks) {
+	private void readData(Bucket bucket, Queue<GetTask> tasks, long currentTime) {
 		Map<String, DataEntry> index = bucket.getIndex();
 		/**
 		 * Get the offset of the data associated with each task in the queue.
@@ -164,7 +165,7 @@ public class StorageManager {
 		// Sort the list based on the disk offsets to do sequential reads. 
 		Collections.sort(dataEntryList);
 		
-		List<Status> readList = readDataFromDisk(bucket, dataEntryList);
+		List<Status> readList = readDataFromDisk(bucket, dataEntryList, currentTime);
 		
 		if (readList != null) {
 			statusList.addAll(readList);
@@ -179,7 +180,7 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void writeData(Bucket bucket, Queue<PutTask> tasks) {
+	private void writeData(Bucket bucket, Queue<PutTask> tasks, long currentTime) {
 		Map<String, DataEntry> index = bucket.getIndex();
 
 		/**
@@ -208,6 +209,8 @@ public class StorageManager {
 				PutStatus status = new PutStatus();
 				status.setHash(hash);
 				status.setSuccess(true);
+				status.setStartTime(currentTime);
+				status.setEndTime(System.currentTimeMillis());
 				statusList.add(status);
 			}
 			/**
@@ -219,7 +222,7 @@ public class StorageManager {
 		
 		if (dataToWrite.size() > 0) {	
 			// The bucket's index will be modified in place.
-			statusList.addAll(writeDataToDisk(bucket, dataToWrite));
+			statusList.addAll(writeDataToDisk(bucket, dataToWrite, currentTime));
 	
 			// Write (serialize) the modified bucket back to disk.
 			writeBucket(bucket);
@@ -315,7 +318,7 @@ public class StorageManager {
 	 * @param dataEntries the data entries
 	 * @return list
 	 */
-	private List<Status> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries) {
+	private List<Status> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries, long currentTime) {
 		List<Status> statusList = new ArrayList<>();
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
@@ -341,6 +344,9 @@ public class StorageManager {
 				status.setSuccess(true);
 				status.setData(data);
 				status.setHash(dataEntry.getHash());
+				status.setStartTime(currentTime);
+				status.setEndTime(System.currentTimeMillis());
+				
 				statusList.add(status);
 			}
 			
@@ -369,7 +375,7 @@ public class StorageManager {
 	 * @param dataToWrite the data
 	 * @return list
 	 */
-	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite) {
+	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite, long currentTime) {
 		OutputStream os = null;
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
@@ -410,6 +416,8 @@ public class StorageManager {
 				PutStatus status = new PutStatus();
 				status.setSuccess(true);
 				status.setHash(entry.getKey());
+				status.setStartTime(currentTime);
+				status.setEndTime(System.currentTimeMillis());
 				statusList.add(status);
 			}
 

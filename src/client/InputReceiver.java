@@ -60,6 +60,7 @@ public class InputReceiver extends Thread{
 				int bytesToRead = 0;
 				byte[] buffer = null;
 				byte[] data = null;
+				long totalDataReceived = 0;
 				
 				while(true) {
 	            	// re-initialize all the values.
@@ -70,15 +71,13 @@ public class InputReceiver extends Thread{
 	            	try {
 	            		bytesToRead = dis.readInt();
 	            		bytesToRead = littleToBigEndian(bytesToRead);
-	            		System.out.println("Total bytes " + bytesToRead);
+	            		// System.out.println("Total bytes " + bytesToRead);
 	            		buffer = new byte[bytesToRead];	            	
 	            		dis.readFully(buffer);
 	            	}
 	            	catch(EOFException e) {
 	            		// break from the inner while loop. But the outer while loop will continue waiting for a connection.
-	            		System.out.println("End of stream!");
-	            		// Get the stats.
-	            		client.calculateStats();
+	            		System.out.println("End of stream!");	            		
 	            		break;
 	            	}
 	            	
@@ -90,19 +89,19 @@ public class InputReceiver extends Thread{
 	            	
 	            	operation = littleToBigEndian(operation);
 	            	
-	            	System.out.println("Operation " + operation);
+	            	// System.out.println("Operation " + operation);
 	            	
 	            	for(int i = 0; i < 20; i++) {
 	            		// little endian to big endian
 	            		hash[20 - i - 1] = buffer[offset++];
 	            	}
 	            	
-	            	System.out.println("Hash " + new String(hash));
+	            	// System.out.println("Hash " + new String(hash));
 	            	
 	            	if (operation == Constants.OPERATION_PUT) { 
 		            	dataLength = bytesToRead - offset;
-		            	System.out.println("dataLength " + dataLength);
-		            	
+		            	// System.out.println("dataLength " + dataLength);
+		            	totalDataReceived += dataLength;
 	            		data = new byte[dataLength];
 	            		for(int i = 0; i < data.length; i++) {
 	            			data[i] = buffer[offset++];
@@ -113,7 +112,17 @@ public class InputReceiver extends Thread{
 	            	else if (operation == Constants.OPERATION_GET) { 
 	            		client.get(hash);
 	            	}
-	            }				
+	            	
+	            	if(totalDataReceived >= (1024 * 1024 * 100)) {
+	            		System.out.println("100 MB received!");
+	            		break;
+	            	}
+	            	//Thread.sleep(1);
+	            }
+				// Wait for sometime before collecting the results. All the results might not have been received by the Client.
+				Thread.sleep(5000);
+        		// Get the stats.
+        		client.calculateStats();
 			}
             
         }
@@ -123,7 +132,9 @@ public class InputReceiver extends Thread{
         
         finally {
         	try {
-				connection.close();
+        		if(connection != null) {
+        			connection.close();
+        		}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
