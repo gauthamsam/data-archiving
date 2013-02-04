@@ -26,11 +26,8 @@ import org.apache.log4j.Logger;
 import utils.Constants;
 import entities.Bucket;
 import entities.DataEntry;
-import entities.GetStatus;
 import entities.GetTask;
-import entities.PutStatus;
 import entities.PutTask;
-import entities.Status;
 import entities.Task;
 import exceptions.ArchiveException;
 
@@ -81,11 +78,11 @@ public class StorageManager {
 				// throw new IllegalArgumentException("Invalid task queues.");
 				return;
 			}
+			
 			Bucket bucket = readBucket(bucketId);
 			//System.out.println("Bucket: " + bucket);
 			
-			if(putQueue != null) {
-				
+			if(putQueue != null) {				
 				// Do the write operations.
 				writeData(bucket, putQueue, currentTime);				
 			}
@@ -96,8 +93,7 @@ public class StorageManager {
 			}
 
 			// Make the bucket eligible for garbage collection.
-			bucket = null;
-			
+			bucket = null;			
 		}
 		// System.out.println("Requests " + requests);
 	}
@@ -132,25 +128,31 @@ public class StorageManager {
 		List<DataEntry> dataEntryList = new ArrayList<>();
 		DataEntry dataEntry = null;
 		String hash = null;
-		List<Status> statusList = new ArrayList<>();
+		List<GetTask> statusList = new ArrayList<>();
 		System.out.println("Reading " + tasks.size() + " task(s) at a time!");
+		Map<String, GetTask> taskMap = new HashMap<>();
 		
 		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
-			Task task = iter.next();
+			GetTask task = iter.next();
 			hash = task.getHash();
 			
 			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
 			if (dataEntry == null) {				
-				GetStatus status = new GetStatus();
+				/*GetStatus status = new GetStatus();
 				status.setSuccess(false);
 				status.setHash(hash);
-				statusList.add(status);
+				*/
+				//processResponse(status, currentTime);
+				task.setStatus(false);
+				statusList.add(task);
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
-				System.out.println("There is no data associated with the hash " + task.getHash());				
+				System.out.println("There is no data associated with the hash " + task.getHash());	
+				
 			}
 			else {
+				taskMap.put(hash, task);
 				dataEntry.setHash(hash);
 				dataEntryList.add(dataEntry);
 			}
@@ -165,13 +167,13 @@ public class StorageManager {
 		// Sort the list based on the disk offsets to do sequential reads. 
 		Collections.sort(dataEntryList);
 		
-		List<Status> readList = readDataFromDisk(bucket, dataEntryList, currentTime);
+		List<GetTask> readList = readDataFromDisk(bucket, dataEntryList, taskMap);
 		
 		if (readList != null) {
 			statusList.addAll(readList);
 		}
 		
-		processResponse(statusList);
+		processResponse(statusList, currentTime);
 	}
 
 	/**
@@ -187,18 +189,20 @@ public class StorageManager {
 		 * Filter the data that is to be written to disk. i.e. Write only the
 		 * blocks that are not already there.
 		 */
-		Map<String, byte[]> dataToWrite = new HashMap<>();
-		List<Status> statusList = new ArrayList<>();		
+		// Map<String, byte[]> dataToWrite = new HashMap<>();
+		List<PutTask> dataToWrite = new ArrayList<>();
+		List<PutTask> statusList = new ArrayList<>();		
 		String hash = null;
 		
 		System.out.println("Writing " + tasks.size() + " task(s) at a time!");
 		
 		for (Iterator<PutTask> iter = tasks.iterator(); iter.hasNext();) {
-			Task task = iter.next();
+			PutTask task = iter.next();
 			hash = task.getHash();			
 			
 			if (! index.containsKey(hash)) {
-				dataToWrite.put(hash, ((PutTask)task).getData());
+				// dataToWrite.put(hash, ((PutTask)task).getData());
+				dataToWrite.add(task);
 				/** 
 				 * Put a dummy entry in the index.
 				 * So, when the task queue has two or more data blocks which are same, we will add only one copy to 'dataToWrite' map.
@@ -206,12 +210,13 @@ public class StorageManager {
 				index.put(hash, null);
 			}
 			else {				
-				PutStatus status = new PutStatus();
+				/*PutStatus status = new PutStatus();
 				status.setHash(hash);
 				status.setSuccess(true);
-				status.setStartTime(currentTime);
-				status.setEndTime(System.currentTimeMillis());
-				statusList.add(status);
+				*/
+				//processResponse(status, currentTime);
+				task.setStatus(true);
+				statusList.add(task);
 			}
 			/**
 			 * Remove the task after processing it in order to avoid situations
@@ -225,10 +230,10 @@ public class StorageManager {
 			statusList.addAll(writeDataToDisk(bucket, dataToWrite, currentTime));
 	
 			// Write (serialize) the modified bucket back to disk.
-			writeBucket(bucket);
-						
+			writeBucket(bucket);						
 		}
-		processResponse(statusList);
+		
+		processResponse(statusList, currentTime);
 	}
 
 	/**
@@ -318,8 +323,8 @@ public class StorageManager {
 	 * @param dataEntries the data entries
 	 * @return list
 	 */
-	private List<Status> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries, long currentTime) {
-		List<Status> statusList = new ArrayList<>();
+	private List<GetTask> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries, Map<String, GetTask> taskMap) {
+		List<GetTask> statusList = new ArrayList<>();
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
@@ -339,15 +344,16 @@ public class StorageManager {
 				raf.seek(dataEntry.getOffset());
 				raf.read(data, 0, data.length);				
 				
+				GetTask task = taskMap.get(dataEntry.getHash());
+				task.setStatus(true);
+				task.setResponseData(data);
 				// Generate a Status for each read.
-				GetStatus status = new GetStatus();
+				/*GetStatus status = new GetStatus();
 				status.setSuccess(true);
 				status.setData(data);
-				status.setHash(dataEntry.getHash());
-				status.setStartTime(currentTime);
-				status.setEndTime(System.currentTimeMillis());
-				
-				statusList.add(status);
+				status.setHash(dataEntry.getHash());				
+				*/
+				statusList.add(task);
 			}
 			
 		} catch (IOException e) {
@@ -375,12 +381,12 @@ public class StorageManager {
 	 * @param dataToWrite the data
 	 * @return list
 	 */
-	private List<Status> writeDataToDisk(Bucket bucket, Map<String, byte[]> dataToWrite, long currentTime) {
+	private List<PutTask> writeDataToDisk(Bucket bucket, List<PutTask> dataToWrite, long currentTime) {
 		OutputStream os = null;
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		
-		List<Status> statusList = new ArrayList<>();
+		List<PutTask> statusList = new ArrayList<>();
 		
 		try {
 			File f = new File(filePath.substring(0, filePath.lastIndexOf("/")));
@@ -398,27 +404,28 @@ public class StorageManager {
 			
 			os = new FileOutputStream(filePath, true);
 			Map<String, DataEntry> index = bucket.getIndex();			
-
-			for (Map.Entry<String, byte[]> entry : dataToWrite.entrySet()) {
-				byte[] data = entry.getValue();
+			
+			for (PutTask task : dataToWrite) {
+				byte[] data = task.getData();
 				os.write(data);
-
+				
 				DataEntry dataEntry = new DataEntry();
 				dataEntry.setOffset(offset);
 				dataEntry.setDataLength(data.length);
 
 				// Add the entry to the bucket's index.
-				index.put(entry.getKey(), dataEntry);
+				index.put(task.getHash(), dataEntry);
 
 				offset += data.length;
 				
 				// Generate a PutStatus and send it to the client via the router.
-				PutStatus status = new PutStatus();
+				/*PutStatus status = new PutStatus();
 				status.setSuccess(true);
 				status.setHash(entry.getKey());
-				status.setStartTime(currentTime);
-				status.setEndTime(System.currentTimeMillis());
-				statusList.add(status);
+				*/
+				// processResponse(status, currentTime);
+				task.setStatus(true);
+				statusList.add(task);
 			}
 
 		} catch (IOException e) {
@@ -443,7 +450,17 @@ public class StorageManager {
 	 *
 	 * @param statusList the status list
 	 */
-	private void processResponse(List<Status> statusList) {		
+	private void processResponse(List<? extends Task> statusList, long currentTime) {
+		// long endTime = System.currentTimeMillis();
+		/*for(Status status : statusList) {
+			status.setStartTime(currentTime);
+			status.setEndTime(time);
+		}*/
+		/*
+		status.setStartTime(currentTime);
+		status.setEndTime(endTime);
+		List<Status> statusList = new ArrayList<>();
+		statusList.add(status);*/
 		try {
 			StorageServerImpl.getInstance().processResponse(statusList);			
 		} catch (RemoteException e) {

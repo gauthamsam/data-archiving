@@ -23,9 +23,11 @@ public interface StorageClient{
 	 */
 	public void get(byte[] hash);
 		
+	public void setStartTime(long startTime);
+	
 	/**
 	 * Calculate stats.
 	 */
-	public void calculateStats();
+	public void calculateStats(long numRequests);
 	
 }

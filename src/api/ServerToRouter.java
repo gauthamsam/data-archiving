@@ -7,7 +7,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
-import entities.Status;
+import entities.Task;
 
 /**
  * The Interface ServerToRouter.
@@ -28,5 +28,5 @@ public interface ServerToRouter extends Remote{
 	 * @param status the status
 	 * @throws RemoteException the remote exception
 	 */
-	public void processResponse(List<Status> status) throws RemoteException;
+	public void processResponse(List<? extends Task> status) throws RemoteException;
 }

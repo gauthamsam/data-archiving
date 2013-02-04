@@ -15,7 +15,6 @@ import api.ServerToRouter;
 import api.StorageServer;
 import entities.GetTask;
 import entities.PutTask;
-import entities.Status;
 import entities.Task;
 import exceptions.ArchiveException;
 
@@ -34,7 +33,7 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 	private ServerToRouter router;
 	
 	/** The status queue. */
-	private BlockingQueue<List<Status>> statusQueue;
+	private BlockingQueue<List<? extends Task>> statusQueue;
 	
 	/**
 	 * Gets the single instance of StorageServerImpl.
@@ -106,7 +105,7 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 	 *
 	 * @param statusList the status list
 	 */
-	public void processResponse(List<Status> statusList) {
+	public void processResponse(List<? extends Task> statusList) {
 		statusQueue.add(statusList);
 	}
 	
@@ -122,7 +121,7 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 		public void run() {
 			while(true) {
 				try {
-					List<Status> status = statusQueue.take();
+					List<? extends Task> status = statusQueue.take();
 					router.processResponse(status);
 				} catch (InterruptedException e) {
 					e.printStackTrace();

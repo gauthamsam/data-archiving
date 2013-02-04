@@ -16,8 +16,60 @@ public abstract class Task implements Serializable{
 	/** The hash. */
 	private String hash;	
 
+	/** The start time. */
 	private long startTime;
 	
+	/** The end time. */
+	private long endTime;
+	
+	/** The status. */
+	private boolean status;
+	
+	/**
+	 * Gets the end time.
+	 *
+	 * @return the end time
+	 */
+	public long getEndTime() {
+		return endTime;
+	}
+
+	/**
+	 * Sets the end time.
+	 *
+	 * @param endTime the new end time
+	 */
+	public void setEndTime(long endTime) {
+		this.endTime = endTime;
+	}
+
+	/**
+	 * Gets the status.
+	 *
+	 * @return the status
+	 */
+	public boolean getStatus() {
+		return status;
+	}
+
+	/**
+	 * Sets the status.
+	 *
+	 * @param status the new status
+	 */
+	public void setStatus(boolean status) {
+		this.status = status;
+	}
+
+	/**
+	 * Gets the serialversionuid.
+	 *
+	 * @return the serialversionuid
+	 */
+	public static long getSerialversionuid() {
+		return serialVersionUID;
+	}
+
 	/**
 	 * Gets the hash.
 	 *
@@ -36,14 +88,27 @@ public abstract class Task implements Serializable{
 		this.hash = hash;
 	}
 
+	/**
+	 * Gets the start time.
+	 *
+	 * @return the start time
+	 */
 	public long getStartTime() {
 		return startTime;
 	}
 
+	/**
+	 * Sets the start time.
+	 *
+	 * @param startTime the new start time
+	 */
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == null || obj.getClass() != getClass())
@@ -53,6 +118,9 @@ public abstract class Task implements Serializable{
         return this.hash == ((Task)obj).getHash();
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		return hash.hashCode();

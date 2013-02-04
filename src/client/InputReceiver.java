@@ -50,6 +50,9 @@ public class InputReceiver extends Thread{
 			while(true) {
 				connection = service.accept();
 				
+				long startTime = System.currentTimeMillis();
+				client.setStartTime(startTime);
+				
 				InputStream in = connection.getInputStream();
 				DataInputStream dis = new DataInputStream(in);
 				
@@ -61,6 +64,7 @@ public class InputReceiver extends Thread{
 				byte[] buffer = null;
 				byte[] data = null;
 				long totalDataReceived = 0;
+				long numRequests = 0;
 				
 				while(true) {
 	            	// re-initialize all the values.
@@ -80,6 +84,8 @@ public class InputReceiver extends Thread{
 	            		System.out.println("End of stream!");	            		
 	            		break;
 	            	}
+	            	
+	            	numRequests ++;
 	            	
 	            	// Only 2 bytes are used for 'operation'.
 	            	for(int i = 0; i < 2; i++) {
@@ -117,12 +123,13 @@ public class InputReceiver extends Thread{
 	            		System.out.println("100 MB received!");
 	            		break;
 	            	}
-	            	//Thread.sleep(1);
-	            }
+	            	// Thread.sleep(1);
+	            }				
 				// Wait for sometime before collecting the results. All the results might not have been received by the Client.
-				Thread.sleep(5000);
+				//Thread.sleep(5000);
         		// Get the stats.
-        		client.calculateStats();
+        		client.calculateStats(numRequests);
+        		
 			}
             
         }

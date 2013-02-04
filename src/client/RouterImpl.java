@@ -19,7 +19,6 @@ import api.Router;
 import api.RouterToClient;
 import api.ServerToRouter;
 import api.StorageServer;
-import entities.Status;
 import entities.Task;
 import entities.TaskPair;
 import exceptions.ArchiveException;
@@ -45,7 +44,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	private int numServers;
 	
 	/** The status queue. */
-	private BlockingQueue<List<Status>> statusQueue = new LinkedBlockingQueue<>();
+	private BlockingQueue<List<? extends Task>> statusQueue = new LinkedBlockingQueue<>();
 	
 	/**
 	 * Gets the single instance of RouterImpl.
@@ -111,14 +110,14 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		int bucketValue = 0;
 		
 		// Getting the integer corresponding to the first 'numBytes' of the hash.
-		/*
+		
 		for(int i = 0; i < Integer.SIZE; i += 8) {
 			if(i >= numBits) {
 				bucketValue = value & mask;
 				break;
 			}
 			value = (value << 8) | hash[i];
-		} */
+		}
 		System.out.println("Bucket hash value: " + bucketValue);
 		
 		int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
@@ -129,7 +128,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	/* (non-Javadoc)
 	 * @see api.ServerToRouter#processResponse(entities.Status)
 	 */
-	public void processResponse(List<Status> status) throws RemoteException {
+	public void processResponse(List<? extends Task> status) throws RemoteException {
 		statusQueue.add(status);
 	}
 	
@@ -207,7 +206,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		public void run() {
 			while(true) {
 				try {
-					List<Status> status = statusQueue.take();
+					List<? extends Task> status = statusQueue.take();
 					client.setStatus(status);
 				} catch (InterruptedException e) {
 					e.printStackTrace();

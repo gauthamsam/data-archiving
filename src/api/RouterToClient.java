@@ -7,7 +7,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
-import entities.Status;
+import entities.Task;
 
 /**
  * The interface that the Router will use to communicate with the Client during callback. 
@@ -20,6 +20,6 @@ public interface RouterToClient extends Remote{
 	 * @param status the new status
 	 * @throws RemoteException the remote exception
 	 */
-	public void setStatus (List<Status> status) throws RemoteException;
+	public void setStatus (List<? extends Task> status) throws RemoteException;
 
 }

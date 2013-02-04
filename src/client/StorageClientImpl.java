@@ -20,11 +20,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import api.Router;
 import api.RouterToClient;
 import api.StorageClient;
-import entities.GetStatus;
 import entities.GetTask;
-import entities.PutStatus;
 import entities.PutTask;
-import entities.Status;
 import entities.Task;
 
 /**
@@ -42,7 +39,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	private Map<String, Task> requestMap;
 	
 	/** The status queue. */
-	private BlockingQueue<Status> statusQueue;
+	private BlockingQueue<List<? extends Task>> statusQueue;
 	
 	/** The client. */
 	private static StorageClientImpl client;
@@ -53,6 +50,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	/** The get time. */
 	private List<Long> getTime = Collections.synchronizedList(new ArrayList<Long>());
 	
+	private long startTime;
 	
 	/**
 	 * Gets the single instance of StorageClientImpl.
@@ -84,8 +82,8 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	 * @see api.RouterToClient#setStatus(entities.Status)
 	 */
 	@Override
-	public void setStatus(List<Status> status) throws RemoteException{
-		statusQueue.addAll(status);
+	public void setStatus(List<? extends Task> status) throws RemoteException{
+		statusQueue.add(status);
 	}	
 	
 	/**
@@ -163,12 +161,14 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		public void run() {
 			while (true) {
 				try {
-					Status status = statusQueue.take();	
-					if (status instanceof GetStatus) {
-						processGetStatus((GetStatus) status);
+					List<? extends Task> statusList = statusQueue.take();
+					for(Task status : statusList) {
+					if (status instanceof GetTask) {
+						processGetStatus((GetTask) status);
 					}
 					else {
-						processPutStatus((PutStatus) status);
+						processPutStatus((PutTask) status);
+					}
 					}
 					
 				} catch (InterruptedException e) {					 
@@ -185,10 +185,10 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 *
 		 * @param status the status
 		 */
-		private void processGetStatus(GetStatus status) {
+		private void processGetStatus(GetTask status) {
 			long currentTime = System.currentTimeMillis();			
 			// getTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
-			getTime.add(status.getEndTime() - status.getStartTime());
+			getTime.add(currentTime - status.getStartTime());
 			//Collections.sort(get_AvgTimeTaken);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
 			//System.out.println("Max time: " + get_AvgTimeTaken.get(get_AvgTimeTaken.size() - 1));
@@ -200,16 +200,15 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		 *
 		 * @param status the status
 		 */
-		private void processPutStatus(PutStatus status) {
+		private void processPutStatus(PutTask status) {
 			long currentTime = System.currentTimeMillis();			
 			// putTime.add((currentTime - requestMap.get(status.getHash()).getStartTime()));
-			putTime.add(status.getEndTime() - status.getStartTime());
+			putTime.add(currentTime - status.getStartTime());
 			// Collections.sort(putTime);
 			//System.out.println("Put: time taken for " + status.getHash() + " => " + (currentTime - requestMap.get(status.getHash()).getStartTime()));
 			//System.out.println("Max time: " + putTime.get(putTime.size() - 1));
 			// System.out.println("Size: " + putTime.size());
 		}
-		
 		
 	}
 
@@ -218,15 +217,20 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	 * @see api.StorageClient#calculateStats()
 	 */
 	@Override
-	public void calculateStats() {
+	public void calculateStats(long numRequests) {
+		
+		while(numRequests != (getTime.size() + putTime.size())) {			
+		}
+		
+		System.out.println("Time taken: " + (System.currentTimeMillis() - this.startTime) + " ms");
+		
 		if(getTime.size() > 0) {
 			calculateGetStats();
 		}
 		
 		if(putTime.size() > 0) {
 			calculatePutStats();
-		}
-		
+		}		
 	}
 	
 	/**
@@ -251,8 +255,15 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 			sum += i;
 		}
 		System.out.println("Total put responses " + putTime.size());
-		System.out.println("Average put time: " + sum/putTime.size());		
+		System.out.println("Average put time: " + sum/putTime.size());
+		Collections.sort(putTime);
+		System.out.println("Max put time: " + putTime.get(putTime.size() - 1));
 		
+	}
+
+	@Override
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
 	}
 
 }
