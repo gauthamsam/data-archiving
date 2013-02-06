@@ -15,7 +15,7 @@ public class Constants {
 	public static final String DATA_DIR = "/home/gautham/data-archiving/storage";
 	
 	/** The Constant BUCKET_FILE_EXTENSION. */
-	public static final String BUCKET_FILE_EXTENSION = ".bucket";
+	public static final String INDEX_FILE_EXTENSION = ".index";
 	
 	/** The Constant DATASTORE_FILE_EXTENSION. */
 	public static final String DATASTORE_FILE_EXTENSION = ".data";
@@ -27,17 +27,20 @@ public class Constants {
 	public static final int OPERATION_GET = 1;
 	
 	/** The number of bits used to represent a bucket. */
-	public static final int BUCKET_NUM_BITS = 2;
+	public static final int BUCKET_NUM_BITS = 1;
 
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
-	public static final int BUFFER_SIZE = 5000;
+	public static final int BUFFER_SIZE = 7000;
 	
 	/** The Constant THREADS_PER_PROCESSOR. */
 	public static final int THREADS_PER_PROCESSOR = 1;
 		
 	/** The maximum amount of time that a bucket can be a "zombie" without being scheduled. */
-	public static final int MAX_TIME_IN_QUEUE = 1500;
+	public static final int MAX_TIME_IN_QUEUE = 100;
 	
 	/** The time period for scheduling tasks that are run by the ExecutorService in the Accumulator. */
-	public static final int SCHEDULED_TIMER_PERIOD = 100;
+	public static final int SCHEDULED_TIMER_PERIOD = 50;
+
+	/** The Constant RESPONSE_ROUTER_THREADS. */
+	public static final int RESPONSE_ROUTER_THREADS = 2;
 }

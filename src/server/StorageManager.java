@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
@@ -78,22 +79,48 @@ public class StorageManager {
 				// throw new IllegalArgumentException("Invalid task queues.");
 				return;
 			}
+			int size = (getQueue != null ? getQueue.size() : 0) + (putQueue != null ? putQueue.size() : 0);
+			// System.out.println("Size: " + size);
+			int batches = (size % Constants.BUFFER_SIZE == 0) ? (size / Constants.BUFFER_SIZE) : ((size / Constants.BUFFER_SIZE) + 1);  
+			// System.out.println("Batches: " + batches);
+					
+			List<Queue<PutTask>> putList = new ArrayList<>(batches);
 			
-			Bucket bucket = readBucket(bucketId);
-			//System.out.println("Bucket: " + bucket);
-			
-			if(putQueue != null) {				
-				// Do the write operations.
-				writeData(bucket, putQueue, currentTime);				
+			if((batches >  1)) {				
+				int batchSize = Constants.BUFFER_SIZE;
+				int temp = size;
+				for(int i = 0; i < batches; i++) {
+					Queue<PutTask> queue = new LinkedBlockingQueue<PutTask>(batchSize);
+					// System.out.println("Batch size: " + batchSize);
+					for(int j = 0; j < batchSize; j++) {
+						queue.add(putQueue.remove());
+					}
+					putList.add(queue);				
+					temp = temp - batchSize;
+					if(temp < Constants.BUFFER_SIZE) {
+						batchSize = temp;
+					}
+				}
+			}
+			else {
+				putList.add(putQueue);
 			}
 			
-			if(getQueue != null) {
-				// Do the read operations.
-				readData(bucket, getQueue, currentTime);				
+			for(Queue<PutTask> queue : putList) {
+				// System.out.println("Batch size: " + queue.size());
+				Bucket bucket = readBucket(bucketId);
+				//System.out.println("Bucket: " + bucket);
+				if(putQueue != null) {
+					// Do the write operations.
+					writeData(bucket, queue);
+				}
+				if(getQueue != null) {
+					// Do the read operations.
+					readData(bucket, getQueue);
+				}
+				// Make the bucket eligible for garbage collection.
+				bucket = null;			
 			}
-
-			// Make the bucket eligible for garbage collection.
-			bucket = null;			
 		}
 		// System.out.println("Requests " + requests);
 	}
@@ -119,7 +146,7 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void readData(Bucket bucket, Queue<GetTask> tasks, long currentTime) {
+	private void readData(Bucket bucket, Queue<GetTask> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
 		/**
 		 * Get the offset of the data associated with each task in the queue.
@@ -173,7 +200,7 @@ public class StorageManager {
 			statusList.addAll(readList);
 		}
 		
-		processResponse(statusList, currentTime);
+		processResponse(statusList);
 	}
 
 	/**
@@ -182,7 +209,7 @@ public class StorageManager {
 	 * @param bucket the bucket
 	 * @param tasks the tasks
 	 */
-	private void writeData(Bucket bucket, Queue<PutTask> tasks, long currentTime) {
+	private void writeData(Bucket bucket, Queue<PutTask> tasks) {
 		Map<String, DataEntry> index = bucket.getIndex();
 
 		/**
@@ -194,7 +221,7 @@ public class StorageManager {
 		List<PutTask> statusList = new ArrayList<>();		
 		String hash = null;
 		
-		System.out.println("Writing " + tasks.size() + " task(s) at a time!");
+		// System.out.println("Writing " + tasks.size() + " task(s) at a time!");
 		
 		for (Iterator<PutTask> iter = tasks.iterator(); iter.hasNext();) {
 			PutTask task = iter.next();
@@ -215,6 +242,7 @@ public class StorageManager {
 				status.setSuccess(true);
 				*/
 				//processResponse(status, currentTime);
+				System.out.println("Duplicates!");
 				task.setStatus(true);
 				statusList.add(task);
 			}
@@ -227,13 +255,13 @@ public class StorageManager {
 		
 		if (dataToWrite.size() > 0) {	
 			// The bucket's index will be modified in place.
-			statusList.addAll(writeDataToDisk(bucket, dataToWrite, currentTime));
+			statusList.addAll(writeDataToDisk(bucket, dataToWrite));
 	
 			// Write (serialize) the modified bucket back to disk.
 			writeBucket(bucket);						
 		}
 		
-		processResponse(statusList, currentTime);
+		processResponse(statusList);
 	}
 
 	/**
@@ -243,7 +271,7 @@ public class StorageManager {
 	 * @return bucket
 	 */
 	private Bucket readBucket(int bucketId) {
-		String bucketPath = Constants.BUCKET_DIR + File.separator + bucketId + Constants.BUCKET_FILE_EXTENSION;
+		String bucketPath = Constants.BUCKET_DIR + File.separator + bucketId + Constants.INDEX_FILE_EXTENSION;
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
 		try {			
@@ -294,7 +322,7 @@ public class StorageManager {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
 
-		String bucketPath = Constants.BUCKET_DIR + File.separator + bucket.getId() + Constants.BUCKET_FILE_EXTENSION;
+		String bucketPath = Constants.BUCKET_DIR + File.separator + bucket.getId() + Constants.INDEX_FILE_EXTENSION;
 		ObjectOutputStream outputStream = null;
 
 		try {
@@ -381,7 +409,7 @@ public class StorageManager {
 	 * @param dataToWrite the data
 	 * @return list
 	 */
-	private List<PutTask> writeDataToDisk(Bucket bucket, List<PutTask> dataToWrite, long currentTime) {
+	private List<PutTask> writeDataToDisk(Bucket bucket, List<PutTask> dataToWrite) {
 		OutputStream os = null;
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
@@ -450,7 +478,7 @@ public class StorageManager {
 	 *
 	 * @param statusList the status list
 	 */
-	private void processResponse(List<? extends Task> statusList, long currentTime) {
+	private void processResponse(List<? extends Task> statusList) {
 		// long endTime = System.currentTimeMillis();
 		/*for(Status status : statusList) {
 			status.setStartTime(currentTime);
@@ -465,6 +493,31 @@ public class StorageManager {
 			StorageServerImpl.getInstance().processResponse(statusList);			
 		} catch (RemoteException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	public static void main(String[] args) {
+		Map<String, String> map = new HashMap<>();
+		map.put("key", "value");
+		String bucketPath = "/home/sam/ucsb/data-archiving/storage/test.data";
+		ObjectOutputStream outputStream = null;
+
+		try {
+			outputStream = new ObjectOutputStream(new FileOutputStream(bucketPath));
+			outputStream.writeObject(map);
+			outputStream.flush();
+		} catch (IOException e) {
+			logger.error(e);
+			throw new ArchiveException(e);
+		} finally {
+			try {
+				if (outputStream != null) {
+					outputStream.close();
+				}
+			} catch (IOException e) {
+				logger.error(e);
+				throw new ArchiveException(e);
+			}
 		}
 	}
 

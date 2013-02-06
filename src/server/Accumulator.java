@@ -48,7 +48,7 @@ public class Accumulator {
 			accumulator = new Accumulator();
 			
 			// Start the scheduler threads.
-			int numThreads = Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
+			int numThreads = Constants.THREADS_PER_PROCESSOR; //Runtime.getRuntime().availableProcessors() * Constants.THREADS_PER_PROCESSOR;
 			for (int i = 1; i <= numThreads; i++) {
 				new Scheduler(i, accumulator).start();
 			}
@@ -159,7 +159,7 @@ public class Accumulator {
 		// Check if the total number of tasks has exceeded the threshold.
 		Queue<GetTask> getQueue = getMap.get(bucketId);
 		int queueSize = ((getQueue != null) ? getQueue.size() : 0 ) + tasks.size();
-		if (queueSize > Constants.BUFFER_SIZE) {
+		if (queueSize >= Constants.BUFFER_SIZE) {
 			addToScheduleQueue(bucketId);			
 		}
 		else {
@@ -191,7 +191,7 @@ public class Accumulator {
 		// Check if the total number of tasks has exceeded the threshold.
 		Queue<PutTask> putQueue = putMap.get(bucketId);
 		int queueSize = ((putQueue != null) ? putQueue.size() : 0 ) + tasks.size();
-		if (queueSize > Constants.BUFFER_SIZE) {			
+		if (queueSize >= Constants.BUFFER_SIZE) {			
 			addToScheduleQueue(bucketId);
 		}
 		else {
@@ -259,7 +259,7 @@ public class Accumulator {
 	class ScheduledTimer {
 		
 		/** The scheduled executor service. */
-		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
 
 		/**
 		 * Execute.
@@ -273,7 +273,7 @@ public class Accumulator {
                 		long currentTime = System.currentTimeMillis();
                 		
                 		if ((currentTime - entry.getValue()) > Constants.MAX_TIME_IN_QUEUE) {                			
-                			System.out.println("Adding " + key + " to scheduler queue.");
+                			// System.out.println("Adding " + key + " to scheduler queue.");
                 			addToScheduleQueue(key);
                 		}
                 	}

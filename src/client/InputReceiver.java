@@ -11,9 +11,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.MessageDigest;
 
 import utils.Constants;
-
 import api.StorageClient;
 
 /**
@@ -65,8 +65,14 @@ public class InputReceiver extends Thread{
 				byte[] data = null;
 				long totalDataReceived = 0;
 				long numRequests = 0;
+				long time1 = System.currentTimeMillis();
+				long time2 = 0;
+				long time3 = 0;
+				long time4 = 0;
+				long putTime = 0;
 				
 				while(true) {
+					
 	            	// re-initialize all the values.
 	            	offset = 0;
 	            	operation = 0;
@@ -112,22 +118,33 @@ public class InputReceiver extends Thread{
 	            		for(int i = 0; i < data.length; i++) {
 	            			data[i] = buffer[offset++];
 	            		}
-	            		client.put(hash, data);	            		            		
+	            		/*byte[] bytes = ByteBuffer.allocate(8).putLong(numRequests).array();
+	            		for(int i = 0; i < 2; i++) {
+	            			hash[i] = bytes[i];
+	            		}*/
+	            		MessageDigest md = null;
+	    				md = MessageDigest.getInstance("SHA-1");
+	    		        hash = md.digest(("a" + numRequests).getBytes());
+	    		        	        
+	            		// time2 = System.currentTimeMillis();
+	            		client.put(hash, data);	           
+	            		// time3 = System.currentTimeMillis();
+	            		putTime += (time3 - time2);
 	            	}
 	            	
 	            	else if (operation == Constants.OPERATION_GET) { 
 	            		client.get(hash);
 	            	}
 	            	
-	            	if(totalDataReceived >= (1024 * 1024 * 100)) {
-	            		System.out.println("100 MB received!");
+	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024)) {	            		
+	            		System.out.println("1024 MB received!");
 	            		break;
 	            	}
-	            	// Thread.sleep(1);
-	            }				
-				// Wait for sometime before collecting the results. All the results might not have been received by the Client.
-				//Thread.sleep(5000);
-        		// Get the stats.
+	            	//Thread.sleep(1);
+	            }
+				
+				time4 = System.currentTimeMillis(); 
+				// Get the stats.
         		client.calculateStats(numRequests);
         		
 			}

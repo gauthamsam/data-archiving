@@ -68,7 +68,9 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		super();
 		serverMap = new HashMap<>();
 		numServers = 0;
-		new ResponseRouter().start();
+		for(int i = 0; i < Constants.RESPONSE_ROUTER_THREADS; i++) {
+			new ResponseRouter().start();
+		}
 	}
 
 	/* (non-Javadoc)
@@ -103,25 +105,29 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		int numBits = Constants.BUCKET_NUM_BITS;
 		
 		if (numBits > Integer.SIZE) {
-			throw new ArchiveException("The number of bits exceeds 32!");
+			throw new ArchiveException("The number of bits exceeds the Integer maximum!");
 		}
 		
-		int mask = (1 << numBits) - 1; // creates an int value with 'numBits' ones in binary. Acts as the bit mask.
 		int bucketValue = 0;
 		
-		// Getting the integer corresponding to the first 'numBytes' of the hash.
-		
-		for(int i = 0; i < Integer.SIZE; i += 8) {
-			if(i >= numBits) {
-				bucketValue = value & mask;
-				break;
+		// numBits will be set to 0 when only 1 bucket needs to be used.
+		if(numBits > 0) {
+			int mask = (1 << numBits) - 1; // creates an int value with 'numBits' ones in binary. Acts as the bit mask.
+			// Getting the integer corresponding to the first 'numBytes' of the hash.
+			for(int i = 0; i < Integer.SIZE; i += 8) {
+				if(i >= numBits) {
+					bucketValue = value & mask;
+					break;
+				}
+				value = (value << 8) | hash[i];
 			}
-			value = (value << 8) | hash[i];
+			
 		}
-		System.out.println("Bucket hash value: " + bucketValue);
+		
+		// System.out.println("Bucket hash value: " + bucketValue);
 		
 		int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
-		System.out.println("Routing to Server " + modValue);
+		// System.out.println("Routing to Server " + modValue);
 		serverMap.get(modValue).assignTask(new TaskPair(bucketValue, task));		
 	}
 	
@@ -189,7 +195,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		public void assignTask(TaskPair taskPair) {
 			taskQueue.add(taskPair);
 			numRequests ++;
-			System.out.println("Num requests routed: " + numRequests);
+			// System.out.println("Num requests routed: " + numRequests);
 		}
 		
 	}
