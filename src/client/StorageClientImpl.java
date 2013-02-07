@@ -116,6 +116,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);
+		task = null;
 	}
 	
 	/* (non-Javadoc)
@@ -129,6 +130,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);
+		task = null;
 	}
 	
 	/**

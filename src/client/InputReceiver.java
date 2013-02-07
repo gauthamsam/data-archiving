@@ -65,11 +65,6 @@ public class InputReceiver extends Thread{
 				byte[] data = null;
 				long totalDataReceived = 0;
 				long numRequests = 0;
-				long time1 = System.currentTimeMillis();
-				long time2 = 0;
-				long time3 = 0;
-				long time4 = 0;
-				long putTime = 0;
 				
 				while(true) {
 					
@@ -125,27 +120,27 @@ public class InputReceiver extends Thread{
 	            		MessageDigest md = null;
 	    				md = MessageDigest.getInstance("SHA-1");
 	    		        hash = md.digest(("a" + numRequests).getBytes());
-	    		        	        
-	            		// time2 = System.currentTimeMillis();
-	            		client.put(hash, data);	           
-	            		// time3 = System.currentTimeMillis();
-	            		putTime += (time3 - time2);
+	    		        
+	    		        client.put(hash, data);	           
+	            		
+	            		data = null;
 	            	}
 	            	
 	            	else if (operation == Constants.OPERATION_GET) { 
 	            		client.get(hash);
 	            	}
 	            	
-	            	
+	            	buffer = null;
+	            	/*
 	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024)) {	            		
 	            		System.out.println("1024 MB received!");
 	            		break;
-	            	}
+	            	}*/
 	            	//Thread.sleep(1);
 	            }
 				
 				System.out.println("Total data received " + totalDataReceived / (1.0 * 1024 * 1024) + " MB ");
-				time4 = System.currentTimeMillis(); 
+				
 				// Get the stats.
         		client.calculateStats(numRequests);
         		

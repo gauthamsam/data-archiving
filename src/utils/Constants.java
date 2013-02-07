@@ -27,20 +27,20 @@ public class Constants {
 	public static final int OPERATION_GET = 1;
 	
 	/** The number of bits used to represent a bucket. */
-	public static final int BUCKET_NUM_BITS = 5;
+	public static final int BUCKET_NUM_BITS = 7;
 
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
 	public static final int BUFFER_SIZE = 10000;
 	
 	/** The Constant THREADS_PER_PROCESSOR. */
-	public static final int THREADS_PER_PROCESSOR = 1;
+	public static final int THREADS_PER_PROCESSOR = 4;
 		
 	/** The maximum amount of time that a bucket can be a "zombie" without being scheduled. */
-	public static final int MAX_TIME_IN_QUEUE = 100;
+	public static final int MAX_TIME_IN_QUEUE = 200;
 	
 	/** The time period for scheduling tasks that are run by the ExecutorService in the Accumulator. */
 	public static final int SCHEDULED_TIMER_PERIOD = 50;
 
 	/** The Constant RESPONSE_ROUTER_THREADS. */
-	public static final int RESPONSE_ROUTER_THREADS = 2;
+	public static final int RESPONSE_ROUTER_THREADS = 3;
 }

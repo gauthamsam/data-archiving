@@ -79,6 +79,7 @@ public class StorageManager {
 				// throw new IllegalArgumentException("Invalid task queues.");
 				return;
 			}
+			/*
 			int size = (getQueue != null ? getQueue.size() : 0) + (putQueue != null ? putQueue.size() : 0);
 			// System.out.println("Size: " + size);
 			int batches = (size % Constants.BUFFER_SIZE == 0) ? (size / Constants.BUFFER_SIZE) : ((size / Constants.BUFFER_SIZE) + 1);  
@@ -105,22 +106,24 @@ public class StorageManager {
 			else {
 				putList.add(putQueue);
 			}
+			*/
 			
-			for(Queue<PutTask> queue : putList) {
-				// System.out.println("Batch size: " + queue.size());
-				Bucket bucket = readBucket(bucketId);
-				//System.out.println("Bucket: " + bucket);
-				if(putQueue != null) {
-					// Do the write operations.
-					writeData(bucket, queue);
-				}
-				if(getQueue != null) {
-					// Do the read operations.
-					readData(bucket, getQueue);
-				}
-				// Make the bucket eligible for garbage collection.
-				bucket = null;			
+			// System.out.println("Batch size: " + queue.size());
+			Bucket bucket = readBucket(bucketId);
+			//System.out.println("Bucket: " + bucket);
+			if(putQueue != null) {
+				// Do the write operations.
+				writeData(bucket, putQueue);
 			}
+			if(getQueue != null) {
+				// Do the read operations.
+				readData(bucket, getQueue);
+			}
+			// Make the bucket eligible for garbage collection.
+			bucket = null;
+			putQueue = null;
+			getQueue = null;
+			
 		}
 		// System.out.println("Requests " + requests);
 	}
@@ -201,6 +204,7 @@ public class StorageManager {
 		}
 		
 		processResponse(statusList);
+		statusList = null;
 	}
 
 	/**
@@ -262,6 +266,7 @@ public class StorageManager {
 		}
 		
 		processResponse(statusList);
+		statusList = null;
 	}
 
 	/**

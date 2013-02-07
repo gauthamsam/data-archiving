@@ -120,8 +120,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 					break;
 				}
 				value = (value << 8) | hash[i];
-			}
-			
+			}			
 		}
 		
 		// System.out.println("Bucket hash value: " + bucketValue);

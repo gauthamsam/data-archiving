@@ -55,10 +55,9 @@
 		</javadoc>
 	</target>
 	<target name="runRouter" description="run Router">
-		<java classname="client.RouterImpl" fork="true">
+		<java classname="client.RouterImpl" fork="true"  maxmemory="16g">
 			<jvmarg value="-Djava.rmi.server.codebase=${computer_web_codebase}" />
-			<jvmarg value="-Djava.security.policy=policy/grant_all.policy" />
-			<jvmarg value="-DXmx10g" />
+			<jvmarg value="-Djava.security.policy=policy/grant_all.policy" />			
 			<classpath>
 				<pathelement location="dist/router.jar" />
 				<pathelement location="${build}" />
@@ -68,7 +67,7 @@
 	</target>
 
 	<target name="runServer" description="run StorageServer">
-		<java classname="server.StorageServerImpl" fork="true">
+		<java classname="server.StorageServerImpl" fork="true" maxmemory="16g">
 			<jvmarg value="-Djava.rmi.server.codebase=${computer_web_codebase}" />
 			<jvmarg value="-Djava.security.policy=policy/grant_all.policy" />			
 			<arg value="localhost" />
@@ -81,7 +80,7 @@
 	</target>
 
 	<target name="runClient" description="run Storage Client">
-		<java classname="client.StorageClientImpl" fork="true">
+		<java classname="client.StorageClientImpl" fork="true" maxmemory="16g">
 			<jvmarg value="-Djava.rmi.server.codebase=${client_web_codebase}" />
 			<jvmarg value="-Djava.security.policy=policy/grant_all.policy" />
 			<arg value="localhost" />
