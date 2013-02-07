@@ -27,10 +27,10 @@ public class Constants {
 	public static final int OPERATION_GET = 1;
 	
 	/** The number of bits used to represent a bucket. */
-	public static final int BUCKET_NUM_BITS = 1;
+	public static final int BUCKET_NUM_BITS = 5;
 
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
-	public static final int BUFFER_SIZE = 7000;
+	public static final int BUFFER_SIZE = 10000;
 	
 	/** The Constant THREADS_PER_PROCESSOR. */
 	public static final int THREADS_PER_PROCESSOR = 1;

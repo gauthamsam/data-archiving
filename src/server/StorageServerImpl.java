@@ -55,7 +55,7 @@ public class StorageServerImpl extends UnicastRemoteObject implements StorageSer
 	 */
 	protected StorageServerImpl() throws RemoteException {
 		super();
-		statusQueue = new LinkedBlockingQueue<>();
+		statusQueue = new LinkedBlockingQueue<List<? extends Task>>();
 		// Start the dispatcher thread.
 		new ResponseDispatcher().start();
 	}

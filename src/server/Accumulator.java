@@ -63,7 +63,7 @@ public class Accumulator {
 		this.putMap = new ConcurrentHashMap<Integer, Queue<PutTask>>();
 		this.getMap = new ConcurrentHashMap<Integer, Queue<GetTask>>();
 		this.scheduleQueue = new PriorityBlockingQueue<Integer>(10, new ScheduleComparator());
-		this.timerMap = new ConcurrentHashMap<>();
+		this.timerMap = new ConcurrentHashMap<Integer, Long>();
 		new ScheduledTimer().execute();
 	}
 	
@@ -151,7 +151,7 @@ public class Accumulator {
 		// Check if the putMap already has a task queue for this bucket.
 		Queue<PutTask> tasks = putMap.get(bucketId);
 		if (tasks == null) {
-			tasks = new LinkedBlockingQueue<>();
+			tasks = new LinkedBlockingQueue<PutTask>();
 		}
 		
 		tasks.add(task);
@@ -183,7 +183,7 @@ public class Accumulator {
 		// Check if the getMap already has a task queue for this bucket.		
 		Queue<GetTask> tasks = getMap.get(bucketId);		
 		if (tasks == null) {
-			tasks = new LinkedBlockingQueue<>();
+			tasks = new LinkedBlockingQueue<GetTask>();
 		}
 		
 		tasks.add(task);

@@ -136,6 +136,7 @@ public class InputReceiver extends Thread{
 	            		client.get(hash);
 	            	}
 	            	
+	            	
 	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024)) {	            		
 	            		System.out.println("1024 MB received!");
 	            		break;
@@ -143,6 +144,7 @@ public class InputReceiver extends Thread{
 	            	//Thread.sleep(1);
 	            }
 				
+				System.out.println("Total data received " + totalDataReceived / (1.0 * 1024 * 1024) + " MB ");
 				time4 = System.currentTimeMillis(); 
 				// Get the stats.
         		client.calculateStats(numRequests);

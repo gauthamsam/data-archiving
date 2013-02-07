@@ -44,7 +44,7 @@ public class StorageManager {
 	private static StorageManager storageManager;
 		
 	/** The hashmap to synchronize access to a bucket. */
-	private Map<Integer, Object> syncMap = new ConcurrentHashMap<>(); 
+	private Map<Integer, Object> syncMap = new ConcurrentHashMap<Integer, Object>(); 
 
 	/**
 	 * Gets the single instance of StorageManager.
@@ -84,9 +84,9 @@ public class StorageManager {
 			int batches = (size % Constants.BUFFER_SIZE == 0) ? (size / Constants.BUFFER_SIZE) : ((size / Constants.BUFFER_SIZE) + 1);  
 			// System.out.println("Batches: " + batches);
 					
-			List<Queue<PutTask>> putList = new ArrayList<>(batches);
+			List<Queue<PutTask>> putList = new ArrayList<Queue<PutTask>>(batches);
 			
-			if((batches >  1)) {				
+			if((Constants.BUCKET_NUM_BITS < 1) && (batches >  1)) {				
 				int batchSize = Constants.BUFFER_SIZE;
 				int temp = size;
 				for(int i = 0; i < batches; i++) {
@@ -152,12 +152,12 @@ public class StorageManager {
 		 * Get the offset of the data associated with each task in the queue.
 		 * Sort the offsets and do a lookup in the disk.
 		 */
-		List<DataEntry> dataEntryList = new ArrayList<>();
+		List<DataEntry> dataEntryList = new ArrayList<DataEntry>();
 		DataEntry dataEntry = null;
 		String hash = null;
-		List<GetTask> statusList = new ArrayList<>();
+		List<GetTask> statusList = new ArrayList<GetTask>();
 		System.out.println("Reading " + tasks.size() + " task(s) at a time!");
-		Map<String, GetTask> taskMap = new HashMap<>();
+		Map<String, GetTask> taskMap = new HashMap<String, GetTask>();
 		
 		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
 			GetTask task = iter.next();
@@ -217,8 +217,8 @@ public class StorageManager {
 		 * blocks that are not already there.
 		 */
 		// Map<String, byte[]> dataToWrite = new HashMap<>();
-		List<PutTask> dataToWrite = new ArrayList<>();
-		List<PutTask> statusList = new ArrayList<>();		
+		List<PutTask> dataToWrite = new ArrayList<PutTask>();
+		List<PutTask> statusList = new ArrayList<PutTask>();		
 		String hash = null;
 		
 		// System.out.println("Writing " + tasks.size() + " task(s) at a time!");
@@ -352,7 +352,7 @@ public class StorageManager {
 	 * @return list
 	 */
 	private List<GetTask> readDataFromDisk(Bucket bucket, List<DataEntry> dataEntries, Map<String, GetTask> taskMap) {
-		List<GetTask> statusList = new ArrayList<>();
+		List<GetTask> statusList = new ArrayList<GetTask>();
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
@@ -414,7 +414,7 @@ public class StorageManager {
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		
-		List<PutTask> statusList = new ArrayList<>();
+		List<PutTask> statusList = new ArrayList<PutTask>();
 		
 		try {
 			File f = new File(filePath.substring(0, filePath.lastIndexOf("/")));
@@ -497,7 +497,7 @@ public class StorageManager {
 	}
 	
 	public static void main(String[] args) {
-		Map<String, String> map = new HashMap<>();
+		Map<String, String> map = new HashMap<String, String>();
 		map.put("key", "value");
 		String bucketPath = "/home/sam/ucsb/data-archiving/storage/test.data";
 		ObjectOutputStream outputStream = null;

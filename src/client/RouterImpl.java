@@ -44,7 +44,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	private int numServers;
 	
 	/** The status queue. */
-	private BlockingQueue<List<? extends Task>> statusQueue = new LinkedBlockingQueue<>();
+	private BlockingQueue<List<? extends Task>> statusQueue = new LinkedBlockingQueue<List<? extends Task>>();
 	
 	/**
 	 * Gets the single instance of RouterImpl.
@@ -66,7 +66,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 */
 	private RouterImpl() throws RemoteException {
 		super();
-		serverMap = new HashMap<>();
+		serverMap = new HashMap<Integer, StorageServerProxy>();
 		numServers = 0;
 		for(int i = 0; i < Constants.RESPONSE_ROUTER_THREADS; i++) {
 			new ResponseRouter().start();
@@ -166,7 +166,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		public StorageServerProxy(int id, StorageServer server) {
 			this.id = id;
 			this.server = server;
-			this.taskQueue = new LinkedBlockingQueue<>();
+			this.taskQueue = new LinkedBlockingQueue<TaskPair>();
 		}
 		
 		/* (non-Javadoc)

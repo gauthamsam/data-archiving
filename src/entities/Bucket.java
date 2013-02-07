@@ -28,7 +28,7 @@ public class Bucket implements Serializable{
 	 */
 	public Bucket(int id){
 		this.id = id;
-		this.index  = new HashMap<>();
+		this.index  = new HashMap<String, DataEntry>();
 	}
 
 	/**

@@ -69,7 +69,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	 */
 	private StorageClientImpl() throws RemoteException {
 		super();		
-		statusQueue = new LinkedBlockingQueue<>();
+		statusQueue = new LinkedBlockingQueue<List<? extends Task>>();
 		new InputReceiver().start();
 		new OutputReceiver().start();
 	}
