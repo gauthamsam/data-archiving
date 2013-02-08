@@ -259,7 +259,7 @@ public class Accumulator {
 	class ScheduledTimer {
 		
 		/** The scheduled executor service. */
-		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+		private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
 		/**
 		 * Execute.

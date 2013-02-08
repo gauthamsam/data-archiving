@@ -168,6 +168,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 						processPutStatus((PutTask) status, endTime);
 					}
 					}
+					statusList = null;
 					
 				} catch (InterruptedException e) {					 
 					e.printStackTrace();

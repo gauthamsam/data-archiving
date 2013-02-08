@@ -70,7 +70,7 @@
 		<java classname="server.StorageServerImpl" fork="true" maxmemory="16g">
 			<jvmarg value="-Djava.rmi.server.codebase=${computer_web_codebase}" />
 			<jvmarg value="-Djava.security.policy=policy/grant_all.policy" />			
-			<arg value="localhost" />
+			<arg value="dhcp-46-221" />
 			<classpath>
 				<pathelement location="dist/server.jar" />
 				<pathelement location="${build}" />

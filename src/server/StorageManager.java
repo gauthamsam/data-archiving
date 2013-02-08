@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
@@ -65,7 +64,7 @@ public class StorageManager {
 	 * @param getQueue the get queue
 	 * @param putQueue the put queue
 	 */
-	public void processData(int bucketId, Queue<GetTask> getQueue, Queue<PutTask> putQueue, long currentTime) {
+	public void processData(int bucketId, Queue<GetTask> getQueue, Queue<PutTask> putQueue) {
 		//System.out.println("StorageManager - Processing Bucket: " + bucketId);
 		
 		/** The lockObject acts as the lock for the following critical section. 
@@ -74,41 +73,11 @@ public class StorageManager {
 		 */
 		Object lockObject = getLock(bucketId);
 		
-		synchronized (lockObject) {
+		synchronized (lockObject) {			
 			if ((getQueue == null || getQueue.size() == 0) && (putQueue == null || putQueue.size() == 0)) {
 				// throw new IllegalArgumentException("Invalid task queues.");
 				return;
 			}
-			/*
-			int size = (getQueue != null ? getQueue.size() : 0) + (putQueue != null ? putQueue.size() : 0);
-			// System.out.println("Size: " + size);
-			int batches = (size % Constants.BUFFER_SIZE == 0) ? (size / Constants.BUFFER_SIZE) : ((size / Constants.BUFFER_SIZE) + 1);  
-			// System.out.println("Batches: " + batches);
-					
-			List<Queue<PutTask>> putList = new ArrayList<Queue<PutTask>>(batches);
-			
-			if((Constants.BUCKET_NUM_BITS < 1) && (batches >  1)) {				
-				int batchSize = Constants.BUFFER_SIZE;
-				int temp = size;
-				for(int i = 0; i < batches; i++) {
-					Queue<PutTask> queue = new LinkedBlockingQueue<PutTask>(batchSize);
-					// System.out.println("Batch size: " + batchSize);
-					for(int j = 0; j < batchSize; j++) {
-						queue.add(putQueue.remove());
-					}
-					putList.add(queue);				
-					temp = temp - batchSize;
-					if(temp < Constants.BUFFER_SIZE) {
-						batchSize = temp;
-					}
-				}
-			}
-			else {
-				putList.add(putQueue);
-			}
-			*/
-			
-			// System.out.println("Batch size: " + queue.size());
 			Bucket bucket = readBucket(bucketId);
 			//System.out.println("Bucket: " + bucket);
 			if(putQueue != null) {
@@ -120,10 +89,7 @@ public class StorageManager {
 				readData(bucket, getQueue);
 			}
 			// Make the bucket eligible for garbage collection.
-			bucket = null;
-			putQueue = null;
-			getQueue = null;
-			
+			bucket = null;			
 		}
 		// System.out.println("Requests " + requests);
 	}
@@ -246,7 +212,7 @@ public class StorageManager {
 				status.setSuccess(true);
 				*/
 				//processResponse(status, currentTime);
-				System.out.println("Duplicates!");
+				// System.out.println("Duplicates!");
 				task.setStatus(true);
 				statusList.add(task);
 			}

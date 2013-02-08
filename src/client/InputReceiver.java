@@ -113,10 +113,12 @@ public class InputReceiver extends Thread{
 	            		for(int i = 0; i < data.length; i++) {
 	            			data[i] = buffer[offset++];
 	            		}
-	            		/*byte[] bytes = ByteBuffer.allocate(8).putLong(numRequests).array();
-	            		for(int i = 0; i < 2; i++) {
+	            		/*
+	            		byte[] bytes = ByteBuffer.allocate(64).putLong(numRequests).array();
+	            		for(int i = 0; i < 20; i++) {
 	            			hash[i] = bytes[i];
-	            		}*/
+	            		} */
+	            		
 	            		MessageDigest md = null;
 	    				md = MessageDigest.getInstance("SHA-1");
 	    		        hash = md.digest(("a" + numRequests).getBytes());
@@ -124,6 +126,7 @@ public class InputReceiver extends Thread{
 	    		        client.put(hash, data);	           
 	            		
 	            		data = null;
+	            		
 	            	}
 	            	
 	            	else if (operation == Constants.OPERATION_GET) { 
@@ -131,11 +134,11 @@ public class InputReceiver extends Thread{
 	            	}
 	            	
 	            	buffer = null;
-	            	/*
-	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024)) {	            		
-	            		System.out.println("1024 MB received!");
+	            	
+	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024 * 2)) {	            		
+	            		System.out.println("2 GB received!");
 	            		break;
-	            	}*/
+	            	}
 	            	//Thread.sleep(1);
 	            }
 				
