@@ -110,23 +110,9 @@ public class InputReceiver extends Thread{
 	            	for(int i = 0; i < data.length; i++) {
 	            		data[i] = buffer[offset++];
 	            	} 	
-	                if(isZero(data)){
- 				//System.out.println("Zero block");
-				//continue;
-                        }	
                         if (operation == Constants.OPERATION_PUT) { 
-		            	
-	            		/*
-	            		byte[] bytes = ByteBuffer.allocate(64).putLong(numRequests).array();
-	            		for(int i = 0; i < 20; i++) {
-	            			hash[i] = bytes[i];
-	            		} */
-	            	MessageDigest md = null;
-	    				md = MessageDigest.getInstance("SHA-1");
-	    		        hash = md.digest(("a" + numRequests).getBytes());	
-	            	        client.put(hash, data);	           
-	            		
-	            		
+		                 client.put(hash, data);	           
+	            	           		
 	            	}
 	            	
 	            	else if (operation == Constants.OPERATION_GET) {

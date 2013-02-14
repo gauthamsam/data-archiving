@@ -130,7 +130,7 @@ public class StorageManager {
 		
 		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
 			GetTask task = iter.next();
-			hash = task.getHash();
+			hash = new String(task.getHash());
 			
 			dataEntry = index.get(hash);
 
@@ -195,7 +195,7 @@ public class StorageManager {
 		
 		for (Iterator<PutTask> iter = tasks.iterator(); iter.hasNext();) {
 			PutTask task = iter.next();
-			hash = task.getHash();			
+			hash = new String(task.getHash());			
 			
 			if (! index.containsKey(hash)) {
 				// dataToWrite.put(hash, ((PutTask)task).getData());
@@ -416,7 +416,7 @@ public class StorageManager {
 					System.out.println("Goner!!");
 				}
 				// Add the entry to the bucket's index.
-				index.put(task.getHash(), dataEntry);
+				index.put(new String(task.getHash()), dataEntry);
 
 				offset += data.length;
 				

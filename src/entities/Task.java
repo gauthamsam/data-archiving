@@ -4,6 +4,7 @@
 package entities;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * The Class Task.
@@ -14,7 +15,7 @@ public abstract class Task implements Serializable{
 	private static final long serialVersionUID = 1959265322617740977L;
 
 	/** The hash. */
-	private String hash;	
+	private byte[] hash;	
 
 	/** The start time. */
 	private long startTime;
@@ -75,7 +76,7 @@ public abstract class Task implements Serializable{
 	 *
 	 * @return the hash
 	 */
-	public String getHash() {
+	public byte[] getHash() {
 		return hash;
 	}
 
@@ -84,7 +85,7 @@ public abstract class Task implements Serializable{
 	 *
 	 * @param hash the new hash
 	 */
-	public void setHash(String hash) {
+	public void setHash(byte[] hash) {
 		this.hash = hash;
 	}
 
@@ -115,7 +116,7 @@ public abstract class Task implements Serializable{
             return false;
         if (obj == this)
             return true;
-        return this.hash == ((Task)obj).getHash();
+        return Arrays.equals(this.hash, ((Task)obj).getHash());
 	}
 	
 	/* (non-Javadoc)
