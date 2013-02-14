@@ -125,7 +125,7 @@ public class StorageManager {
 		DataEntry dataEntry = null;
 		String hash = null;
 		List<GetTask> statusList = new ArrayList<GetTask>();
-		System.out.println("Reading " + tasks.size() + " task(s) at a time!");
+		// System.out.println("Reading " + tasks.size() + " task(s) at a time!");
 		Map<String, GetTask> taskMap = new HashMap<String, GetTask>();
 		
 		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
@@ -221,6 +221,7 @@ public class StorageManager {
 			 * where there will be duplicate task entries in the bucket queues because of multi-threading.
 			 */
 			iter.remove();
+			//System.out.println("index " + index.containsKey(hash));
 		}		
 		
 		if (dataToWrite.size() > 0) {	
@@ -327,7 +328,7 @@ public class StorageManager {
 
 		String filePath = Constants.DATA_DIR + File.separator + bucket.getId() + Constants.DATASTORE_FILE_EXTENSION;
 		RandomAccessFile raf = null;
-		System.out.println("Reading data from disk for bucket " + bucket.getId());		
+		// System.out.println("Reading data from disk for bucket " + bucket.getId());		
 		try {
 			File file = new File(filePath);
 			if (! file.exists()) {
@@ -411,7 +412,9 @@ public class StorageManager {
 				DataEntry dataEntry = new DataEntry();
 				dataEntry.setOffset(offset);
 				dataEntry.setDataLength(data.length);
-
+				if(index.get(task.getHash()) != null){
+					System.out.println("Goner!!");
+				}
 				// Add the entry to the bucket's index.
 				index.put(task.getHash(), dataEntry);
 

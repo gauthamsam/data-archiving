@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Arrays;
 
 import utils.Constants;
 import api.Router;
@@ -20,6 +21,7 @@ import api.RouterToClient;
 import api.ServerToRouter;
 import api.StorageServer;
 import entities.Task;
+import entities.PutTask;
 import entities.TaskPair;
 import exceptions.ArchiveException;
 
@@ -100,7 +102,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 */
 	public void routeRequest(Task task) throws RemoteException {
 		byte[] hash = task.getHash().getBytes();
-		
+	        System.out.println("hash length" + hash.length);	
 		int value = 0;
 		int numBits = Constants.BUCKET_NUM_BITS;
 		
@@ -119,14 +121,16 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 					bucketValue = value & mask;
 					break;
 				}
-				value = (value << 8) | hash[i];
+				value = (value << 8) | (hash[20- i/8 - 1] & 0xff);
 			}			
 		}
 		
 		// System.out.println("Bucket hash value: " + bucketValue);
 		
-		int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
-		// System.out.println("Routing to Server " + modValue);
+		//int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
+		int modValue = bucketValue % numServers;
+                //if(bucketValue == 111) System.out.println("byte[] " + Arrays.toString(hash)); 
+                // System.out.println("Routing to Server " + modValue);
 		serverMap.get(modValue).assignTask(new TaskPair(bucketValue, task));		
 	}
 	

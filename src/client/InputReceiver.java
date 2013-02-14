@@ -86,7 +86,6 @@ public class InputReceiver extends Thread{
 	            		break;
 	            	}
 	            	
-	            	numRequests ++;
 	            	
 	            	// Only 2 bytes are used for 'operation'.
 	            	for(int i = 0; i < 2; i++) {
@@ -100,45 +99,51 @@ public class InputReceiver extends Thread{
 	            	
 	            	for(int i = 0; i < 20; i++) {
 	            		// little endian to big endian
-	            		hash[20 - i - 1] = buffer[offset++];
+	            		hash[i] = buffer[offset++];
 	            	}
 	            	
 	            	// System.out.println("Hash " + new String(hash));
-	            	
-	            	if (operation == Constants.OPERATION_PUT) { 
-		            	dataLength = bytesToRead - offset;
-		            	// System.out.println("dataLength " + dataLength);
-		            	totalDataReceived += dataLength;
-	            		data = new byte[dataLength];
-	            		for(int i = 0; i < data.length; i++) {
-	            			data[i] = buffer[offset++];
-	            		}
+	                dataLength = bytesToRead - offset;
+		        // System.out.println("dataLength " + dataLength);
+		        totalDataReceived += dataLength;
+	            	data = new byte[dataLength];
+	            	for(int i = 0; i < data.length; i++) {
+	            		data[i] = buffer[offset++];
+	            	} 	
+	                if(isZero(data)){
+ 				//System.out.println("Zero block");
+				//continue;
+                        }	
+                        if (operation == Constants.OPERATION_PUT) { 
+		            	
 	            		/*
 	            		byte[] bytes = ByteBuffer.allocate(64).putLong(numRequests).array();
 	            		for(int i = 0; i < 20; i++) {
 	            			hash[i] = bytes[i];
 	            		} */
-	            		
-	            		MessageDigest md = null;
+	            	MessageDigest md = null;
 	    				md = MessageDigest.getInstance("SHA-1");
-	    		        hash = md.digest(("a" + numRequests).getBytes());
-	    		        
-	    		        client.put(hash, data);	           
+	    		        hash = md.digest(("a" + numRequests).getBytes());	
+	            	        client.put(hash, data);	           
 	            		
-	            		data = null;
 	            		
 	            	}
 	            	
-	            	else if (operation == Constants.OPERATION_GET) { 
+	            	else if (operation == Constants.OPERATION_GET) {
 	            		client.get(hash);
 	            	}
+	                data = null;
 	            	
 	            	buffer = null;
-	            	
-	            	if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024 * 2)) {	            		
-	            		System.out.println("2 GB received!");
+	            	numRequests ++;
+	            	/*if(totalDataReceived >= (1.0 * 1024 * 1024 * 1024 * 10)) {	            		
+	            		System.out.println("10 GB received!");
 	            		break;
-	            	}
+	            	}*/
+			if(numRequests >= 2000000) {
+				System.out.println("2000000 requests.");
+				break;
+			}
 	            	//Thread.sleep(1);
 	            }
 				
@@ -164,6 +169,23 @@ public class InputReceiver extends Thread{
 			}
         }
 
+	}
+
+        
+	/**
+ * 	 * Checks if the given byte array contains only 0s.
+ * 	 	 *
+ * 	 	 	 * @param data the data
+ * 	 	 	 	 * @return true, if is zero
+ * 	 	 	 	 	 */
+	private static boolean isZero(byte[] data) {
+		int mask = (1 << 8) - 1;
+		for(int i = 0; i < data.length; i++) {
+			if((data[i] & mask) != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/**

@@ -9,10 +9,10 @@ package utils;
 public class Constants {
 
 	/** The Constant BUCKET_DIR. */
-	public static final String BUCKET_DIR = "/home/gautham/data-archiving/storage";
+	public static final String BUCKET_DIR = "/home/gautham/data-archiving/storage_z";
 	
 	/** The Constant DATA_DIR. */
-	public static final String DATA_DIR = "/home/gautham/data-archiving/storage";
+	public static final String DATA_DIR = "/home/gautham/data-archiving/storage_z";
 	
 	/** The Constant BUCKET_FILE_EXTENSION. */
 	public static final String INDEX_FILE_EXTENSION = ".index";
@@ -30,13 +30,13 @@ public class Constants {
 	public static final int BUCKET_NUM_BITS = 7;
 
 	/** The size of the buffer. Once the number of tasks in the scheduler queue exceeds this, the bucket becomes ready to be scheduled. */
-	public static final int BUFFER_SIZE = 1000;
+	public static final int BUFFER_SIZE = 500;
 	
 	/** The Constant THREADS_PER_PROCESSOR. */
 	public static final int THREADS_PER_PROCESSOR = 4;
 		
 	/** The maximum amount of time that a bucket can be a "zombie" without being scheduled. */
-	public static final int MAX_TIME_IN_QUEUE = 200;
+	public static final int MAX_TIME_IN_QUEUE = 100;
 	
 	/** The time period for scheduling tasks that are run by the ExecutorService in the Accumulator. */
 	public static final int SCHEDULED_TIMER_PERIOD = 100;
