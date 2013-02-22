@@ -112,7 +112,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 		String strHash = new String(hash);
 		PutTask task = new PutTask();
 		task.setData(data);
-		task.setHash(strHash);		
+		task.setHash(hash);		
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);
@@ -126,7 +126,7 @@ public class StorageClientImpl extends UnicastRemoteObject implements StorageCli
 	public void get(byte[] hash) {
 		String strHash = new String(hash);
 		GetTask task = new GetTask();
-		task.setHash(strHash);		
+		task.setHash(hash);		
 		task.setStartTime(System.currentTimeMillis());
 		
 		routeRequest(task);

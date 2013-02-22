@@ -166,8 +166,9 @@ public class Accumulator {
 			/** When the bucket doesn't have enough requests buffered, mark the time.
 			 * When it stays without being scheduled for a specified amount of time, schedule it forcefully.
 			 */
-			// System.out.println("Added " + bucketId + " to timer map.");
-			timerMap.put(bucketId, System.currentTimeMillis());
+			if(timerMap.get(bucketId) == null) {
+				timerMap.put(bucketId, System.currentTimeMillis());
+			}
 		}
 		
 		putMap.put(bucketId, tasks);
@@ -198,9 +199,10 @@ public class Accumulator {
 			/** 
 			 * When the bucket doesn't have enough requests buffered, mark the time.
 			 * When it stays without being scheduled for a specified amount of time, schedule it forcefully.
-			 */
-			// System.out.println("Added " + bucketId + " to timer map.");
-			timerMap.put(bucketId, System.currentTimeMillis());
+			 */			
+			if(timerMap.get(bucketId) == null) {
+				timerMap.put(bucketId, System.currentTimeMillis());
+			}
 		}
 		
 		getMap.put(bucketId, tasks);

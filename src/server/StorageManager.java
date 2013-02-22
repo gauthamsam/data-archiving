@@ -78,7 +78,9 @@ public class StorageManager {
 				// throw new IllegalArgumentException("Invalid task queues.");
 				return;
 			}
-			Bucket bucket = readBucket(bucketId);
+			//long startTime = System.currentTimeMillis();
+			//System.out.println("size: " + putQueue.size());
+			Bucket bucket = readIndex(bucketId);
 			//System.out.println("Bucket: " + bucket);
 			if(putQueue != null) {
 				// Do the write operations.
@@ -87,9 +89,9 @@ public class StorageManager {
 			if(getQueue != null) {
 				// Do the read operations.
 				readData(bucket, getQueue);
-			}
-			// Make the bucket eligible for garbage collection.
-			bucket = null;			
+			}			
+			//long endTime = System.currentTimeMillis();
+			//System.out.println("Time taken: " + (endTime - startTime) + " ms");
 		}
 		// System.out.println("Requests " + requests);
 	}
@@ -130,17 +132,12 @@ public class StorageManager {
 		
 		for (Iterator<GetTask> iter = tasks.iterator(); iter.hasNext();) {
 			GetTask task = iter.next();
-			hash = task.getHash();
+			hash = new String(task.getHash());
 			
 			dataEntry = index.get(hash);
 
 			// If the index does not contain the hash
-			if (dataEntry == null) {				
-				/*GetStatus status = new GetStatus();
-				status.setSuccess(false);
-				status.setHash(hash);
-				*/
-				//processResponse(status, currentTime);
+			if (dataEntry == null) {
 				task.setStatus(false);
 				statusList.add(task);
 				logger.error("Error: There is no data associated with the hash " + task.getHash());
@@ -186,7 +183,6 @@ public class StorageManager {
 		 * Filter the data that is to be written to disk. i.e. Write only the
 		 * blocks that are not already there.
 		 */
-		// Map<String, byte[]> dataToWrite = new HashMap<>();
 		List<PutTask> dataToWrite = new ArrayList<PutTask>();
 		List<PutTask> statusList = new ArrayList<PutTask>();		
 		String hash = null;
@@ -195,10 +191,10 @@ public class StorageManager {
 		
 		for (Iterator<PutTask> iter = tasks.iterator(); iter.hasNext();) {
 			PutTask task = iter.next();
-			hash = task.getHash();			
+			hash = new String(task.getHash());			
 			
+			// If the incoming data block is not a duplicate
 			if (! index.containsKey(hash)) {
-				// dataToWrite.put(hash, ((PutTask)task).getData());
 				dataToWrite.add(task);
 				/** 
 				 * Put a dummy entry in the index.
@@ -207,12 +203,6 @@ public class StorageManager {
 				index.put(hash, null);
 			}
 			else {				
-				/*PutStatus status = new PutStatus();
-				status.setHash(hash);
-				status.setSuccess(true);
-				*/
-				//processResponse(status, currentTime);
-				// System.out.println("Duplicates!");
 				task.setStatus(true);
 				statusList.add(task);
 			}
@@ -220,8 +210,7 @@ public class StorageManager {
 			 * Remove the task after processing it in order to avoid situations
 			 * where there will be duplicate task entries in the bucket queues because of multi-threading.
 			 */
-			iter.remove();
-			//System.out.println("index " + index.containsKey(hash));
+			iter.remove();			
 		}		
 		
 		if (dataToWrite.size() > 0) {	
@@ -229,7 +218,7 @@ public class StorageManager {
 			statusList.addAll(writeDataToDisk(bucket, dataToWrite));
 	
 			// Write (serialize) the modified bucket back to disk.
-			writeBucket(bucket);						
+			writeIndex(bucket);						
 		}
 		
 		processResponse(statusList);
@@ -237,12 +226,12 @@ public class StorageManager {
 	}
 
 	/**
-	 * Read bucket.
+	 * Read index.
 	 * 
 	 * @param bucketId the bucket id
 	 * @return bucket
 	 */
-	private Bucket readBucket(int bucketId) {
+	private Bucket readIndex(int bucketId) {
 		String bucketPath = Constants.BUCKET_DIR + File.separator + bucketId + Constants.INDEX_FILE_EXTENSION;
 		ObjectInputStream inputStream = null;
 		Bucket bucket = null;
@@ -285,11 +274,11 @@ public class StorageManager {
 	}
 
 	/**
-	 * Write bucket.
+	 * Write index.
 	 * 
 	 * @param bucket the bucket
 	 */
-	private void writeBucket(Bucket bucket) {
+	private void writeIndex(Bucket bucket) {
 		if (bucket == null) {
 			throw new IllegalArgumentException("Invalid bucketId or task queue.");
 		}
@@ -347,12 +336,7 @@ public class StorageManager {
 				GetTask task = taskMap.get(dataEntry.getHash());
 				task.setStatus(true);
 				task.setResponseData(data);
-				// Generate a Status for each read.
-				/*GetStatus status = new GetStatus();
-				status.setSuccess(true);
-				status.setData(data);
-				status.setHash(dataEntry.getHash());				
-				*/
+				
 				statusList.add(task);
 			}
 			
@@ -416,16 +400,10 @@ public class StorageManager {
 					System.out.println("Goner!!");
 				}
 				// Add the entry to the bucket's index.
-				index.put(task.getHash(), dataEntry);
+				index.put(new String(task.getHash()), dataEntry);
 
-				offset += data.length;
+				offset += data.length;				
 				
-				// Generate a PutStatus and send it to the client via the router.
-				/*PutStatus status = new PutStatus();
-				status.setSuccess(true);
-				status.setHash(entry.getKey());
-				*/
-				// processResponse(status, currentTime);
 				task.setStatus(true);
 				statusList.add(task);
 			}
@@ -452,47 +430,12 @@ public class StorageManager {
 	 *
 	 * @param statusList the status list
 	 */
-	private void processResponse(List<? extends Task> statusList) {
-		// long endTime = System.currentTimeMillis();
-		/*for(Status status : statusList) {
-			status.setStartTime(currentTime);
-			status.setEndTime(time);
-		}*/
-		/*
-		status.setStartTime(currentTime);
-		status.setEndTime(endTime);
-		List<Status> statusList = new ArrayList<>();
-		statusList.add(status);*/
+	private void processResponse(List<? extends Task> statusList) {		
 		try {
 			StorageServerImpl.getInstance().processResponse(statusList);			
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
-	}
+	}	
 	
-	public static void main(String[] args) {
-		Map<String, String> map = new HashMap<String, String>();
-		map.put("key", "value");
-		String bucketPath = "/home/sam/ucsb/data-archiving/storage/test.data";
-		ObjectOutputStream outputStream = null;
-
-		try {
-			outputStream = new ObjectOutputStream(new FileOutputStream(bucketPath));
-			outputStream.writeObject(map);
-			outputStream.flush();
-		} catch (IOException e) {
-			logger.error(e);
-			throw new ArchiveException(e);
-		} finally {
-			try {
-				if (outputStream != null) {
-					outputStream.close();
-				}
-			} catch (IOException e) {
-				logger.error(e);
-				throw new ArchiveException(e);
-			}
-		}
-	}
-
 }

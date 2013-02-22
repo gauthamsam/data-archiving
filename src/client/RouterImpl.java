@@ -101,7 +101,7 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 * @throws RemoteException the remote exception
 	 */
 	public void routeRequest(Task task) throws RemoteException {
-		byte[] hash = task.getHash().getBytes();
+		byte[] hash = task.getHash();
 	        System.out.println("hash length" + hash.length);	
 		int value = 0;
 		int numBits = Constants.BUCKET_NUM_BITS;
@@ -129,8 +129,8 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 		
 		//int modValue = (bucketValue < 0) ? (numServers - (Math.abs(bucketValue) % numServers) ) % numServers : (bucketValue % numServers);
 		int modValue = bucketValue % numServers;
-                //if(bucketValue == 111) System.out.println("byte[] " + Arrays.toString(hash)); 
-                // System.out.println("Routing to Server " + modValue);
+        //if(bucketValue == 111) System.out.println("byte[] " + Arrays.toString(hash)); 
+        // System.out.println("Routing to Server " + modValue);
 		serverMap.get(modValue).assignTask(new TaskPair(bucketValue, task));		
 	}
 	
