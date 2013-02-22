@@ -112,7 +112,8 @@ public class InputReceiver extends Thread{
 	                
                     if (operation == Constants.OPERATION_PUT) { 
 		            	client.put(hash, data);
-	            	}
+
+	            	} 	
 	            	
 	            	else if (operation == Constants.OPERATION_GET) {
 	            		client.get(hash);

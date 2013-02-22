@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.Arrays;
 
 import utils.Constants;
 import api.Router;
@@ -21,7 +20,6 @@ import api.RouterToClient;
 import api.ServerToRouter;
 import api.StorageServer;
 import entities.Task;
-import entities.PutTask;
 import entities.TaskPair;
 import exceptions.ArchiveException;
 
@@ -102,7 +100,6 @@ public class RouterImpl extends UnicastRemoteObject implements Router, ServerToR
 	 */
 	public void routeRequest(Task task) throws RemoteException {
 		byte[] hash = task.getHash();
-	        System.out.println("hash length" + hash.length);	
 		int value = 0;
 		int numBits = Constants.BUCKET_NUM_BITS;
 		
